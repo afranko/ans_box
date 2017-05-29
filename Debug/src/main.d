@@ -1,6 +1,6 @@
-src/main.o: ../src/main.c ../include/main.h ../include/init.h \
+src/main.o: ../src/main.c ../include/init.h \
  ../system/include/stm32f4-hal/stm32f4xx_hal.h \
- ../include/stm32f4xx_hal_conf.h ../include/main.h \
+ ../include/stm32f4xx_hal_conf.h \
  ../system/include/stm32f4-hal/stm32f4xx_hal_rcc.h \
  ../system/include/stm32f4-hal/stm32f4xx_hal_def.h \
  ../system/include/cmsis/stm32f4xx.h \
@@ -38,17 +38,13 @@ src/main.o: ../src/main.c ../include/main.h ../include/init.h \
  ../include/../src/FatFs/ff_gen_drv.h ../include/../src/FatFs/diskio.h \
  ../include/../src/FatFs/ff.h ../include/../src/FatFs/sd_diskio.h \
  ../include/edge_comm/edge_comm.h ../include/edge_comm/parson.h \
- ../include/edge_comm/GSM_MQTT.h
-
-../include/main.h:
+ ../include/edge_comm/GSM_MQTT.h ../include/statemachine.h
 
 ../include/init.h:
 
 ../system/include/stm32f4-hal/stm32f4xx_hal.h:
 
 ../include/stm32f4xx_hal_conf.h:
-
-../include/main.h:
 
 ../system/include/stm32f4-hal/stm32f4xx_hal_rcc.h:
 
@@ -139,3 +135,5 @@ src/main.o: ../src/main.c ../include/main.h ../include/init.h \
 ../include/edge_comm/parson.h:
 
 ../include/edge_comm/GSM_MQTT.h:
+
+../include/statemachine.h:

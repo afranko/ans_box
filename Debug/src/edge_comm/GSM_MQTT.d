@@ -1,7 +1,7 @@
 src/edge_comm/GSM_MQTT.o: ../src/edge_comm/GSM_MQTT.c \
  ../include/edge_comm/GSM_MQTT.h \
  ../system/include/stm32f4-hal/stm32f4xx_hal.h \
- ../include/stm32f4xx_hal_conf.h ../include/main.h \
+ ../include/stm32f4xx_hal_conf.h \
  ../system/include/stm32f4-hal/stm32f4xx_hal_rcc.h \
  ../system/include/stm32f4-hal/stm32f4xx_hal_def.h \
  ../system/include/cmsis/stm32f4xx.h \
@@ -40,8 +40,6 @@ src/edge_comm/GSM_MQTT.o: ../src/edge_comm/GSM_MQTT.c \
 ../system/include/stm32f4-hal/stm32f4xx_hal.h:
 
 ../include/stm32f4xx_hal_conf.h:
-
-../include/main.h:
 
 ../system/include/stm32f4-hal/stm32f4xx_hal_rcc.h:
 

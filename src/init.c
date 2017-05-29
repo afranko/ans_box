@@ -339,11 +339,10 @@ void write_default_cfgfile()
 	JSON_Value *default_conf_value = json_value_init_object();
 	JSON_Object *default_conf_object = json_value_get_object(default_conf_value);
 
-	//TODO default értékek
 	json_object_set_number(default_conf_object, "threshold_min", 0);
 	json_object_set_number(default_conf_object, "threshold_max", 4095);
 	json_object_set_number(default_conf_object, "meas_timeout", 1000);
-	json_object_set_number(default_conf_object, "env_meas_freq", 100); //most periódus, vagy freki vagy TODO
+	json_object_set_number(default_conf_object, "env_meas_freq", 100);
 	json_object_set_string(default_conf_object, "mqtt_host", "mqtthost.name");
 	json_object_set_string(default_conf_object, "port", "1883");
 	json_object_set_string(default_conf_object, "gsm_apn", "provider.apn");

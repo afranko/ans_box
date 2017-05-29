@@ -1,7 +1,7 @@
 src/edge_comm/edge_comm.o: ../src/edge_comm/edge_comm.c \
  ../include/edge_comm/edge_comm.h ../include/edge_comm/parson.h \
  ../system/include/stm32f4-hal/stm32f4xx_hal.h \
- ../include/stm32f4xx_hal_conf.h ../include/main.h \
+ ../include/stm32f4xx_hal_conf.h \
  ../system/include/stm32f4-hal/stm32f4xx_hal_rcc.h \
  ../system/include/stm32f4-hal/stm32f4xx_hal_def.h \
  ../system/include/cmsis/stm32f4xx.h \
@@ -43,8 +43,6 @@ src/edge_comm/edge_comm.o: ../src/edge_comm/edge_comm.c \
 ../system/include/stm32f4-hal/stm32f4xx_hal.h:
 
 ../include/stm32f4xx_hal_conf.h:
-
-../include/main.h:
 
 ../system/include/stm32f4-hal/stm32f4xx_hal_rcc.h:
 

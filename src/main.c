@@ -2,8 +2,8 @@
 
 
 /* Includes ------------------------------------------------------------------*/
-#include "main.h"
 #include "init.h"
+#include "statemachine.h"
 
 ADC_HandleTypeDef hadc3;
 
@@ -17,11 +17,10 @@ TIM_HandleTypeDef htim4;
 UART_HandleTypeDef huart3;
 
 /* Global variables */
-
-uint16_t threshold_min;
-uint16_t threshold_max;
-uint16_t meas_timeout;
-uint16_t env_meas_freq;
+uint16_t threshold_min;		// [min 0] -
+uint16_t threshold_max;		// [max 4095]
+uint16_t meas_timeout; 		// [ms]
+uint16_t env_meas_freq;		// [s]
 char mqtt_host[50];
 char port[5];
 char gsm_apn[30];
@@ -32,12 +31,15 @@ int main(void)
 {
 	/* Initialization */
 	init_settings();
+	//comm_init();
+
+	p_start();
 
 	while(1)
 	{
 
+		//mqtt_process();
+		statemachine_process();
 	}
 
 }
-
-/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

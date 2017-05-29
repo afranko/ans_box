@@ -8,6 +8,7 @@ C_SRCS += \
 ../src/fatfs.c \
 ../src/init.c \
 ../src/main.c \
+../src/statemachine.c \
 ../src/stm32f4xx_hal_msp.c \
 ../src/stm32f4xx_it.c 
 
@@ -16,6 +17,7 @@ OBJS += \
 ./src/fatfs.o \
 ./src/init.o \
 ./src/main.o \
+./src/statemachine.o \
 ./src/stm32f4xx_hal_msp.o \
 ./src/stm32f4xx_it.o 
 
@@ -24,6 +26,7 @@ C_DEPS += \
 ./src/fatfs.d \
 ./src/init.d \
 ./src/main.d \
+./src/statemachine.d \
 ./src/stm32f4xx_hal_msp.d \
 ./src/stm32f4xx_it.d 
 

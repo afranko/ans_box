@@ -1,7 +1,7 @@
 src/FatFs/ff.o: ../src/FatFs/ff.c ../src/FatFs/ff.h \
  ../src/FatFs/integer.h ../include/ffconf.h \
  ../system/include/stm32f4-hal/stm32f4xx_hal.h \
- ../include/stm32f4xx_hal_conf.h ../include/main.h \
+ ../include/stm32f4xx_hal_conf.h \
  ../system/include/stm32f4-hal/stm32f4xx_hal_rcc.h \
  ../system/include/stm32f4-hal/stm32f4xx_hal_def.h \
  ../system/include/cmsis/stm32f4xx.h \
@@ -45,8 +45,6 @@ src/FatFs/ff.o: ../src/FatFs/ff.c ../src/FatFs/ff.h \
 ../system/include/stm32f4-hal/stm32f4xx_hal.h:
 
 ../include/stm32f4xx_hal_conf.h:
-
-../include/main.h:
 
 ../system/include/stm32f4-hal/stm32f4xx_hal_rcc.h:
 

@@ -1,7 +1,7 @@
 src/FatFs/diskio.o: ../src/FatFs/diskio.c ../src/FatFs/diskio.h \
  ../src/FatFs/integer.h ../src/FatFs/ff_gen_drv.h ../src/FatFs/ff.h \
  ../include/ffconf.h ../system/include/stm32f4-hal/stm32f4xx_hal.h \
- ../include/stm32f4xx_hal_conf.h ../include/main.h \
+ ../include/stm32f4xx_hal_conf.h \
  ../system/include/stm32f4-hal/stm32f4xx_hal_rcc.h \
  ../system/include/stm32f4-hal/stm32f4xx_hal_def.h \
  ../system/include/cmsis/stm32f4xx.h \
@@ -49,8 +49,6 @@ src/FatFs/diskio.o: ../src/FatFs/diskio.c ../src/FatFs/diskio.h \
 ../system/include/stm32f4-hal/stm32f4xx_hal.h:
 
 ../include/stm32f4xx_hal_conf.h:
-
-../include/main.h:
 
 ../system/include/stm32f4-hal/stm32f4xx_hal_rcc.h:
 
