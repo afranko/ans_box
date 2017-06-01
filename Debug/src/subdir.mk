@@ -5,27 +5,33 @@
 # Add inputs and outputs from these tool invocations to the build variables 
 C_SRCS += \
 ../src/bsp_driver_sd.c \
+../src/circ_buff.c \
 ../src/fatfs.c \
 ../src/init.c \
 ../src/main.c \
+../src/measurement.c \
 ../src/statemachine.c \
 ../src/stm32f4xx_hal_msp.c \
 ../src/stm32f4xx_it.c 
 
 OBJS += \
 ./src/bsp_driver_sd.o \
+./src/circ_buff.o \
 ./src/fatfs.o \
 ./src/init.o \
 ./src/main.o \
+./src/measurement.o \
 ./src/statemachine.o \
 ./src/stm32f4xx_hal_msp.o \
 ./src/stm32f4xx_it.o 
 
 C_DEPS += \
 ./src/bsp_driver_sd.d \
+./src/circ_buff.d \
 ./src/fatfs.d \
 ./src/init.d \
 ./src/main.d \
+./src/measurement.d \
 ./src/statemachine.d \
 ./src/stm32f4xx_hal_msp.d \
 ./src/stm32f4xx_it.d 

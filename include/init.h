@@ -5,6 +5,19 @@
 #include "fatfs.h"
 #include "edge_comm/edge_comm.h"
 
+typedef struct settings_t
+{
+	uint16_t threshold_min;		// [min 0] -
+	uint16_t threshold_max;		// [max 4095]
+	uint16_t meas_timeout; 		// [ms]
+	uint16_t env_meas_freq;		// [s]
+	char mqtt_host[50];
+	char port[5];
+	char gsm_apn[30];
+	uint8_t ping_retry;
+	char client_name[20];
+}Settings_HandleTypeDef;
+
 typedef enum{
 	INIT_OK					= 0,
 	INIT_SD_ERROR			= 1,
@@ -19,16 +32,7 @@ typedef enum{
 	INVALID_SETTINGS_ERROR 	= 10
 }InitStateCode;
 
-/* Global variables */
-extern uint16_t threshold_min;
-extern uint16_t threshold_max;
-extern uint16_t meas_timeout;
-extern uint16_t env_meas_freq;
-extern char mqtt_host[50];
-extern char port[5];
-extern char gsm_apn[30];
-extern uint8_t ping_retry;
-extern char client_name[20];
+extern Settings_HandleTypeDef config_s;
 
 extern ADC_HandleTypeDef hadc3;
 

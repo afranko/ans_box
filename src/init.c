@@ -219,9 +219,9 @@ static void MX_TIM2_Init(void)
   TIM_MasterConfigTypeDef sMasterConfig;
 
   htim2.Instance = TIM2;
-  htim2.Init.Prescaler = 42000;
+  htim2.Init.Prescaler = 41999;
   htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim2.Init.Period = 20;
+  htim2.Init.Period = 19;
   htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
   {
@@ -234,9 +234,13 @@ static void MX_TIM2_Init(void)
 	  config_status = HAL_TIM_ERROR;
   }
 
-  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_UPDATE; //TIM_TRGO_RESET todo
   sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
   if (HAL_TIMEx_MasterConfigSynchronization(&htim2, &sMasterConfig) != HAL_OK)
+  {
+	  config_status = HAL_TIM_ERROR;
+  }
+  if (HAL_TIM_Base_Start(&htim2) != HAL_OK) //TODO IT?
   {
 	  config_status = HAL_TIM_ERROR;
   }
@@ -251,9 +255,9 @@ static void MX_TIM4_Init(void)
   TIM_MasterConfigTypeDef sMasterConfig;
 
   htim4.Instance = TIM4;
-  htim4.Init.Prescaler = 42000;
+  htim4.Init.Prescaler = 41999;
   htim4.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim4.Init.Period = 2000;
+  htim4.Init.Period = 1999;
   htim4.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   if (HAL_TIM_Base_Init(&htim4) != HAL_OK)
   {
@@ -272,6 +276,10 @@ static void MX_TIM4_Init(void)
   {
 	  config_status = HAL_TIM_ERROR;
   }
+  /*if (HAL_TIM_Base_Start_IT(&htim4) != HAL_OK) //TODO IT??
+  {
+	  config_status = HAL_TIM_ERROR;
+  }*/
 
 }
 
@@ -408,20 +416,20 @@ void load_config_sd()
 
 				/* Get config settings from JSON */
 
-				threshold_min = (uint16_t)json_object_get_number(json_object(conf_setup), "threshold_min");
-				threshold_max = (uint16_t)json_object_get_number(json_object(conf_setup), "threshold_max");
-				meas_timeout = (uint16_t)json_object_get_number(json_object(conf_setup), "meas_timeout");
-				env_meas_freq = (uint16_t)json_object_get_number(json_object(conf_setup), "env_meas_freq");
+				config_s.threshold_min = (uint16_t)json_object_get_number(json_object(conf_setup), "threshold_min");
+				config_s.threshold_max = (uint16_t)json_object_get_number(json_object(conf_setup), "threshold_max");
+				config_s.meas_timeout = (uint16_t)json_object_get_number(json_object(conf_setup), "meas_timeout");
+				config_s.env_meas_freq = (uint16_t)json_object_get_number(json_object(conf_setup), "env_meas_freq");
 				mqtt_host_p = json_object_get_string(json_object(conf_setup), "mqtt_host");
 				port_p = json_object_get_string(json_object(conf_setup), "port");
 				gsm_apn_p = json_object_get_string(json_object(conf_setup), "gsm_apn");
-				ping_retry = (uint8_t)json_object_get_number(json_object(conf_setup), "ping_retry");
+				config_s.ping_retry = (uint8_t)json_object_get_number(json_object(conf_setup), "ping_retry");
 				client_name_p = json_object_get_string(json_object(conf_setup), "client_name");
 
-				strcpy(mqtt_host, mqtt_host_p);
-				strcpy(port, port_p);
-				strcpy(gsm_apn, gsm_apn_p);
-				strcpy(client_name, client_name_p);
+				strcpy(config_s.mqtt_host, mqtt_host_p);
+				strcpy(config_s.port, port_p);
+				strcpy(config_s.gsm_apn, gsm_apn_p);
+				strcpy(config_s.client_name, client_name_p);
 
 				json_value_free(conf_setup);
 

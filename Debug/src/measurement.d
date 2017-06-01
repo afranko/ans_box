@@ -1,6 +1,5 @@
-src/main.o: ../src/main.c ../include/statemachine.h \
- ../include/measurement.h ../include/init.h \
- ../system/include/stm32f4-hal/stm32f4xx_hal.h \
+src/measurement.o: ../src/measurement.c ../include/measurement.h \
+ ../include/init.h ../system/include/stm32f4-hal/stm32f4xx_hal.h \
  ../include/stm32f4xx_hal_conf.h \
  ../system/include/stm32f4-hal/stm32f4xx_hal_rcc.h \
  ../system/include/stm32f4-hal/stm32f4xx_hal_def.h \
@@ -40,8 +39,6 @@ src/main.o: ../src/main.c ../include/statemachine.h \
  ../include/../src/FatFs/ff.h ../include/../src/FatFs/sd_diskio.h \
  ../include/edge_comm/edge_comm.h ../include/edge_comm/parson.h \
  ../include/edge_comm/GSM_MQTT.h ../include/circ_buff.h
-
-../include/statemachine.h:
 
 ../include/measurement.h:
 

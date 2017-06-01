@@ -2,8 +2,8 @@
 
 
 /* Includes ------------------------------------------------------------------*/
-#include "init.h"
 #include "statemachine.h"
+#include "measurement.h"
 
 ADC_HandleTypeDef hadc3;
 
@@ -16,22 +16,39 @@ TIM_HandleTypeDef htim4;
 
 UART_HandleTypeDef huart3;
 
-/* Global variables */
-uint16_t threshold_min;		// [min 0] -
-uint16_t threshold_max;		// [max 4095]
-uint16_t meas_timeout; 		// [ms]
-uint16_t env_meas_freq;		// [s]
-char mqtt_host[50];
-char port[5];
-char gsm_apn[30];
-uint8_t ping_retry;
-char client_name[20];
+Settings_HandleTypeDef config_s;
+
+/*----------------------*/
+/* 		   Table 		*/
+/*----------------------*/
+/*	 cont_0		PF7 	*/
+/*	 cont_1		PF8 	*/
+/*	 cont_2		PF9 	*/
+/*	 cont_3		PF10 	*/
+/*----------------------*/
+//TODO
+
+cBuff cont_0, cont_1, cont_2, cont_3;
+
+
+
+uint32_t mes;
 
 int main(void)
 {
 	/* Initialization */
 	init_settings();
+
+	/* Init circular buffers */
+	init_cBuff(&cont_0);
+	init_cBuff(&cont_1);
+	init_cBuff(&cont_2);
+	init_cBuff(&cont_3);
+
+
 	//comm_init();
+
+	HAL_ADC_Start_IT(&hadc3);//TODO it? HAL_ADC_Start_IT
 
 	p_start();
 
@@ -39,7 +56,14 @@ int main(void)
 	{
 
 		//mqtt_process();
-		statemachine_process();
+		//statemachine_process();
+		HAL_GPIO_WritePin(GPIOC,GPIO_PIN_13, GPIO_PIN_RESET);
+		HAL_Delay(1000);
+		HAL_GPIO_WritePin(GPIOC,GPIO_PIN_13, GPIO_PIN_SET);
+		HAL_Delay(1000);
+
+
 	}
 
 }
+

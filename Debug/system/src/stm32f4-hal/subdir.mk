@@ -63,7 +63,6 @@ C_SRCS += \
 ../system/src/stm32f4-hal/stm32f4xx_hal_sram.c \
 ../system/src/stm32f4-hal/stm32f4xx_hal_tim.c \
 ../system/src/stm32f4-hal/stm32f4xx_hal_tim_ex.c \
-../system/src/stm32f4-hal/stm32f4xx_hal_timebase_tim_template.c \
 ../system/src/stm32f4-hal/stm32f4xx_hal_uart.c \
 ../system/src/stm32f4-hal/stm32f4xx_hal_usart.c \
 ../system/src/stm32f4-hal/stm32f4xx_hal_wwdg.c \
@@ -132,7 +131,6 @@ OBJS += \
 ./system/src/stm32f4-hal/stm32f4xx_hal_sram.o \
 ./system/src/stm32f4-hal/stm32f4xx_hal_tim.o \
 ./system/src/stm32f4-hal/stm32f4xx_hal_tim_ex.o \
-./system/src/stm32f4-hal/stm32f4xx_hal_timebase_tim_template.o \
 ./system/src/stm32f4-hal/stm32f4xx_hal_uart.o \
 ./system/src/stm32f4-hal/stm32f4xx_hal_usart.o \
 ./system/src/stm32f4-hal/stm32f4xx_hal_wwdg.o \
@@ -201,7 +199,6 @@ C_DEPS += \
 ./system/src/stm32f4-hal/stm32f4xx_hal_sram.d \
 ./system/src/stm32f4-hal/stm32f4xx_hal_tim.d \
 ./system/src/stm32f4-hal/stm32f4xx_hal_tim_ex.d \
-./system/src/stm32f4-hal/stm32f4xx_hal_timebase_tim_template.d \
 ./system/src/stm32f4-hal/stm32f4xx_hal_uart.d \
 ./system/src/stm32f4-hal/stm32f4xx_hal_usart.d \
 ./system/src/stm32f4-hal/stm32f4xx_hal_wwdg.d \
