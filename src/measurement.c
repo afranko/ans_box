@@ -74,3 +74,9 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 		helloka++;
 	}*/
 }
+
+uint16_t read_last(cBuff *buff_c)
+{
+	uint16_t lastData = buff_c->buffer[buff_c->head-1];
+	return lastData;
+}

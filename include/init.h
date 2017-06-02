@@ -48,6 +48,7 @@ extern UART_HandleTypeDef huart3;
 void init_settings();
 void restart_init();
 void load_config_sd();
+void config_error();
 
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);

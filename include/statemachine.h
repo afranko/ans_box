@@ -5,6 +5,10 @@
 #ifndef STATEMACHINE_H_
 #define STATEMACHINE_H_
 
+#include "measurement.h"
+
+extern cBuff cont_0, cont_1, cont_2, cont_3;
+
 typedef enum
 {
 	S_START		= 6,
@@ -18,6 +22,7 @@ typedef enum
 
 
 void p_start(void);
+machine_state p_error(void);
 
 void statemachine_process();
 

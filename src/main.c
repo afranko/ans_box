@@ -3,7 +3,6 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "statemachine.h"
-#include "measurement.h"
 
 ADC_HandleTypeDef hadc3;
 
@@ -30,8 +29,6 @@ Settings_HandleTypeDef config_s;
 
 cBuff cont_0, cont_1, cont_2, cont_3;
 
-
-
 uint32_t mes;
 
 int main(void)
@@ -50,18 +47,14 @@ int main(void)
 
 	HAL_ADC_Start_IT(&hadc3);//TODO it? HAL_ADC_Start_IT
 
+	/* Go to "Start" state */
 	p_start();
 
 	while(1)
 	{
 
 		//mqtt_process();
-		//statemachine_process();
-		HAL_GPIO_WritePin(GPIOC,GPIO_PIN_13, GPIO_PIN_RESET);
-		HAL_Delay(1000);
-		HAL_GPIO_WritePin(GPIOC,GPIO_PIN_13, GPIO_PIN_SET);
-		HAL_Delay(1000);
-
+		statemachine_process();
 
 	}
 

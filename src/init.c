@@ -322,6 +322,11 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(GPIOC,GPIO_PIN_13, GPIO_PIN_SET);
 }
 
+void config_error()
+{
+	config_status = NO_CONFIG_ERROR;
+}
+
 void restart_init()
 {
 	for(int i = 0; i < 15; i++)
