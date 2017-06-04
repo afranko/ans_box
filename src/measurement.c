@@ -5,16 +5,8 @@
 
 #include "measurement.h"
 
-
-extern uint32_t mes; //TODO
-
-uint8_t hello = 0;
-uint8_t helloka = 0;
-
-int tomb[2000]; //TODO
-int co = 0;
-
-uint8_t bcounter = 0;
+/* Counter for ADC's channels */
+uint32_t bcounter = 0;
 
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 {
@@ -42,41 +34,13 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 			break;
 		}
 
-	bcounter++;
+		/* Increment counter*/
+		bcounter++; //TODO overflow?
 	}
-
-	/*FOR TEST ONLY TODO
-	if(helloka == 0)
-	{
-		helloka = 1;
-		HAL_TIM_Base_Start_IT(&htim4);
-	}
-	uint32_t mes = HAL_ADC_GetValue(hadc); //MEKKORA? TODO
-
-	tomb[co] = mes;
-	co++; */
-
-	/*if(co == 1999)
-	{
-		HAL_ADC_Stop_IT(hadc);
-	}*/
 }
-
-/*void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
-{
-	//FOR TEST ONLY TODO
-	if(htim->Instance == TIM4)
-	{
-		hello++;
-	}
-	if(hello == 6)
-	{
-		helloka++; //BREAKPOINT
-	}
-}*/
 
 uint16_t read_last(cBuff *buff_c)
 {
-	uint16_t lastData = buff_c->buffer[buff_c->head-1];
+	uint16_t lastData = buff_c->buffer[(buff_c->head)-1];
 	return lastData;
 }

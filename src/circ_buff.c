@@ -12,7 +12,7 @@ void init_cBuff(cBuff *buff_c)
 
 cBuff_State push_cBuff(cBuff *buff_c, uint16_t data)
 {
-	uint8_t next = (buff_c->head+1) % BUFFER_SIZE;
+	uint16_t next = (buff_c->head+1) % BUFFER_SIZE;
 
 	/* Check if we had enough place */
 	if(next == buff_c->tail)
@@ -43,7 +43,7 @@ cBuff_State pop_cBuff(cBuff *buff_c, uint16_t *data)
 cBuff_State flush_cBuff(cBuff *buff_c)
 {
 	init_cBuff(buff_c);
-	for(int i = 0; i < REAL_SIZE; i++)
+	for(int i = 0; i < BUFFER_SIZE; i++)
 	{
 		buff_c->buffer[i] = 0;
 	}

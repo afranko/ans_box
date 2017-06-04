@@ -16,10 +16,10 @@ machine_state (*func_arr[5])(void);
 machine_state p_error(void) //WHAT ABOUT INF CYCLE? TODO
 {
 	uint16_t position;
-	position = read_last(&cont_0);
 
 	while(1) //TODO anything else?
 	{
+		position = read_last(&cont_0);
 		if(position > config_s.threshold_max || position < config_s.threshold_min)
 		{
 
@@ -59,12 +59,14 @@ machine_state p_high(void)
 machine_state p_meas_up(void)
 {
 	uint32_t timer = 0;
-	uint16_t position = read_last(&cont_0);
+	uint16_t position;
 
 
 	timer = HAL_GetTick();
 	while(1)
 	{
+		position = read_last(&cont_0);
+
 		/* Go to error due to timeout */
 		if((HAL_GetTick() - timer) > timeout) //TODO common timeout
 		{
@@ -82,11 +84,13 @@ machine_state p_meas_up(void)
 machine_state p_meas_down(void)
 {
 	uint32_t timer = 0;
-	uint16_t position = read_last(&cont_0);
+	uint16_t position;
 
 	timer = HAL_GetTick();
 	while(1)
 	{
+		position = read_last(&cont_0);
+
 		/* Go to error due to timeout */
 		if((HAL_GetTick() - timer) > timeout) //TODO common timeout
 		{
@@ -129,7 +133,7 @@ void p_start(void)
 		pos = read_last(&cont_0);
 
 		/*Check if we can start operating*/
-		if(pos > config_s.threshold_max || pos < config_s.threshold_min)
+		if((pos > config_s.threshold_max) || (pos < config_s.threshold_min))
 		{
 
 			if(pos < config_s.threshold_min)

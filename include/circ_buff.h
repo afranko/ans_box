@@ -5,16 +5,21 @@
 #ifndef CIRC_BUFF_H_
 #define CIRC_BUFF_H_
 
-#define BUFFER_SIZE		((unsigned char)0x4096U)	//	1 buffer = 4kByte	=>	4 buffer = 16kByte
-#define REAL_SIZE		BUFFER_SIZE+1				//	We have one byte to detect overflow
-
 #include "init.h"
+
+#define BUFFER_SIZE		2048
+
+/* 1 buffer = 4kByte (1 place = 2 Byte = 1 Word) =>
+ * 4 buffer = 16kByte 	=>
+ * But we had only 16000 Byte so we have 4*24 	=>
+ * We need one byte to detect overflow 	=> 	Still Safe
+ */
 
 typedef struct c_buff_t
 {
-	uint16_t buffer[REAL_SIZE];
-	uint8_t head;
-	uint8_t tail;
+	uint16_t buffer[BUFFER_SIZE];
+	uint16_t head;
+	uint16_t tail;
 }cBuff;
 
 typedef enum
