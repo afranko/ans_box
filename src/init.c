@@ -100,7 +100,7 @@ void SystemClock_Config(void)
 }
 
 /* ADC3 init function */
-static void MX_ADC3_Init(void)
+void MX_ADC3_Init(void)
 {
 
   ADC_ChannelConfTypeDef sConfig;
@@ -164,7 +164,7 @@ static void MX_ADC3_Init(void)
 }
 
 /* I2C2 init function */
-static void MX_I2C2_Init(void)
+void MX_I2C2_Init(void)
 {
   hi2c2.Instance = I2C2;
   hi2c2.Init.ClockSpeed = 100000;
@@ -182,7 +182,7 @@ static void MX_I2C2_Init(void)
 }
 
 /* RTC init function */
-static void MX_RTC_Init(void)
+void MX_RTC_Init(void)
 {
     /**Initialize RTC Only
     */
@@ -200,7 +200,7 @@ static void MX_RTC_Init(void)
 }
 
 /* SDIO init function */
-static void MX_SDIO_SD_Init(void)
+void MX_SDIO_SD_Init(void)
 {
   hsd.Instance = SDIO;
   hsd.Init.ClockEdge = SDIO_CLOCK_EDGE_RISING;
@@ -212,7 +212,7 @@ static void MX_SDIO_SD_Init(void)
 }
 
 /* TIM2 init function */
-static void MX_TIM2_Init(void)
+void MX_TIM2_Init(void)
 {
 
   TIM_ClockConfigTypeDef sClockSourceConfig;
@@ -248,7 +248,7 @@ static void MX_TIM2_Init(void)
 }
 
 /* TIM4 init function */
-static void MX_TIM4_Init(void)
+void MX_TIM4_Init(void)
 {
 
   TIM_ClockConfigTypeDef sClockSourceConfig;
@@ -284,7 +284,7 @@ static void MX_TIM4_Init(void)
 }
 
 /* USART3 init function */
-static void MX_USART3_UART_Init(void)
+void MX_USART3_UART_Init(void)
 {
 
   huart3.Instance = USART3;
@@ -302,7 +302,7 @@ static void MX_USART3_UART_Init(void)
 
 }
 
-static void MX_GPIO_Init(void)
+void MX_GPIO_Init(void)
 {
 
   /* GPIO Ports Clock Enable */
@@ -449,23 +449,3 @@ void load_config_sd()
 	f_close(&CONFIG_F);
 	f_mount(NULL, "", 1);
 }
-
-#ifdef USE_FULL_ASSERT
-
-/**
-   * @brief Reports the name of the source file and the source line number
-   * where the assert_param error has occurred.
-   * @param file: pointer to the source file name
-   * @param line: assert_param error line source number
-   * @retval None
-   */
-void assert_failed(uint8_t* file, uint32_t line)
-{
-  /* USER CODE BEGIN 6 */
-  /* User can add his own implementation to report the file name and line number,
-    ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
-  /* USER CODE END 6 */
-
-}
-
-#endif

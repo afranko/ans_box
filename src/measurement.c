@@ -6,7 +6,7 @@
 #include "measurement.h"
 
 
-extern uint32_t mes;
+extern uint32_t mes; //TODO
 
 uint8_t hello = 0;
 uint8_t helloka = 0;
@@ -20,7 +20,7 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 {
 	if(hadc->Instance == ADC3)
 	{
-		/* Read data drom ADC's DR */
+		/* Read data from ADC's DR */
 		uint16_t adc_data = (uint16_t)HAL_ADC_GetValue(hadc);
 
 		/* Writing to buffers */
@@ -62,18 +62,18 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 	}*/
 }
 
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+/*void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
-	/* FOR TEST ONLY TODO
+	//FOR TEST ONLY TODO
 	if(htim->Instance == TIM4)
 	{
 		hello++;
 	}
 	if(hello == 6)
 	{
-		helloka++;
-	}*/
-}
+		helloka++; //BREAKPOINT
+	}
+}*/
 
 uint16_t read_last(cBuff *buff_c)
 {

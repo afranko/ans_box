@@ -51,13 +51,13 @@ void load_config_sd();
 void config_error();
 
 void SystemClock_Config(void);
-static void MX_GPIO_Init(void);
-static void MX_ADC3_Init(void);
-static void MX_I2C2_Init(void);
-static void MX_RTC_Init(void);
-static void MX_SDIO_SD_Init(void);
-static void MX_TIM2_Init(void);
-static void MX_TIM4_Init(void);
-static void MX_USART3_UART_Init(void);
+void MX_GPIO_Init(void);
+void MX_ADC3_Init(void);
+void MX_I2C2_Init(void);
+void MX_RTC_Init(void);
+void MX_SDIO_SD_Init(void);
+void MX_TIM2_Init(void);
+void MX_TIM4_Init(void);
+void MX_USART3_UART_Init(void);
 
 #endif /* __INIT_H */
