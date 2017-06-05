@@ -17,7 +17,15 @@ cBuff_State push_cBuff(cBuff *buff_c, uint16_t data)
 	/* Check if we had enough place */
 	if(next == buff_c->tail)
 	{
+
+#ifdef GOVERFLOW
+		(buff_c->tail)++;
+#endif
+
+#ifndef GOVERFLOW
 		return cBuff_FULL;
+#endif
+
 	}
 
 	/* Write to the buffer */

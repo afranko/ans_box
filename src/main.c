@@ -27,7 +27,7 @@ Settings_HandleTypeDef config_s;
 /*----------------------*/
 //TODO
 
-cBuff cont_0, cont_1, cont_2, cont_3;
+cBuff cont_0, cont_1, cont_2, cont_3, gBuffer;
 
 extern uint32_t bcounter;
 
@@ -41,6 +41,7 @@ int main(void)
 	init_cBuff(&cont_1);
 	init_cBuff(&cont_2);
 	init_cBuff(&cont_3);
+	init_cBuff(&gBuffer);
 
 	//comm_init();
 

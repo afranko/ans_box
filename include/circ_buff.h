@@ -7,7 +7,14 @@
 
 #include "init.h"
 
-#define BUFFER_SIZE		2048
+/*
+ * GOVERFLOW = 0 => Standard Circular Buffer Mode, can't be overwritten (losing data not allowed)
+ * GOVERFLOW = 1 => OverFlow mode, the buffer can't be full, we overwrite the oldest data (losing data allowed)
+ */
+
+#define	GOVERFLOW	1
+
+#define BUFFER_SIZE		2048 //TODO elég lesz-e a nagy bufferhez is???
 
 /* 1 buffer = 4kByte (1 place = 2 Byte = 1 Word) =>
  * 4 buffer = 16kByte 	=>

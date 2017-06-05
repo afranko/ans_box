@@ -8,6 +8,17 @@
 /* Counter for ADC's channels */
 uint32_t bcounter = 0;
 
+/* Counter for offset head */
+uint16_t ocounter = 0;
+
+uint16_t noffset = 0;
+uint16_t poffset = 0;
+bool offMeas = false;
+bool mFlag = false;
+bool endMeas = false;
+
+bool MSG_FLAG = false;				// Send message flag
+
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 {
 	if(hadc->Instance == ADC3)
@@ -37,10 +48,85 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 		/* Increment counter*/
 		bcounter++; //TODO overflow?
 	}
+	meas_datamove();
 }
 
 uint16_t read_last(cBuff *buff_c)
 {
 	uint16_t lastData = buff_c->buffer[(buff_c->head)-1];
 	return lastData;
+}
+
+void meas_datamove(void)
+{
+
+	if(CLEAR_FLAG == true)
+	{
+		CLEAR_FLAG = false;
+		ocounter = 0;
+		noffset = 0;
+		poffset = 0;
+		offMeas = false;
+		mFlag = false;
+		endMeas = false;
+		flush_cBuff(&gBuffer);
+	}
+
+	/* Start reading to the great data buffer */
+	if(S_MEAS_FLAG == true)
+	{
+		S_MEAS_FLAG = false;
+		noffset = cont_0.head;
+		cont_0.tail = cont_0.head+1;
+		offMeas = true;
+	}
+
+	/* Start reading negative offset */
+	if(offMeas == true)
+	{
+		uint16_t temp_head = (noffset - ocounter) % BUFFER_SIZE;
+		push_cBuff(&gBuffer, cont_0.buffer[temp_head]);
+		ocounter++;
+		if(temp_head == (noffset - ((config_s.meas_offset) / 10)) % BUFFER_SIZE)
+		{
+			offMeas = false;
+			mFlag = true;
+			ocounter = 0;
+		}
+	}
+
+	/* End of the measurement */
+	if(poffset == cont_0.tail)
+	{
+		mFlag = false;
+		endMeas = true;
+	}
+
+	/* Start reding measurement data */
+	if(mFlag == true)
+	{
+		uint16_t data;
+		pop_cBuff(&cont_0, &data);
+		push_cBuff(&gBuffer, data);
+	}
+
+	/* Set positive offset head */
+	if(E_MEAS_FLAG == true)
+	{
+		poffset = cont_0.head+1;
+		E_MEAS_FLAG = false;
+	}
+
+	if(endMeas == true)
+	{
+		uint16_t temp_head = (poffset + ocounter) % BUFFER_SIZE;
+		push_cBuff(&gBuffer, cont_0.buffer[temp_head]);
+		ocounter++;
+		if(temp_head == (noffset + ((config_s.meas_offset) / 10)) % BUFFER_SIZE)
+		{
+			endMeas = false;
+			ocounter = 0;
+			MSG_FLAG = true;
+		}
+	}
 }

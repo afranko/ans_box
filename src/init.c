@@ -355,6 +355,7 @@ void write_default_cfgfile()
 	json_object_set_number(default_conf_object, "threshold_min", 0);
 	json_object_set_number(default_conf_object, "threshold_max", 4095);
 	json_object_set_number(default_conf_object, "meas_timeout", 1000);
+	json_object_set_number(default_conf_object, "meas_offset", 1000);
 	json_object_set_number(default_conf_object, "env_meas_freq", 100);
 	json_object_set_string(default_conf_object, "mqtt_host", "mqtthost.name");
 	json_object_set_string(default_conf_object, "port", "1883");
@@ -424,6 +425,7 @@ void load_config_sd()
 				config_s.threshold_min = (uint16_t)json_object_get_number(json_object(conf_setup), "threshold_min");
 				config_s.threshold_max = (uint16_t)json_object_get_number(json_object(conf_setup), "threshold_max");
 				config_s.meas_timeout = (uint16_t)json_object_get_number(json_object(conf_setup), "meas_timeout");
+				config_s.meas_offset = (uint16_t)json_object_get_number(json_object(conf_setup), "meas_offset");
 				config_s.env_meas_freq = (uint16_t)json_object_get_number(json_object(conf_setup), "env_meas_freq");
 				mqtt_host_p = json_object_get_string(json_object(conf_setup), "mqtt_host");
 				port_p = json_object_get_string(json_object(conf_setup), "port");
