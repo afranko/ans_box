@@ -33,9 +33,9 @@ void CommInit(UART_HandleTypeDef *huart, unsigned long KeepAlive)
  *
  */
 
-void sendData(int nodeID, int measLocID, char *timestamp, int ambientTemperature, int dustLevel, int railTemperature, char *startTime, int measSeqNum, int duration, char *meas1, char *meas2)
-{
-	int bigLen = 2+strlen(meas1)+3+strlen(meas2)+2+1; //terminating null
+void sendData(int nodeID, int measLocID, char *timestamp, int ambientTemperature, int dustLevel, int railTemperature, char *startTime,
+			int measSeqNum, int duration, JSON_Value *meas_array)
+{//TODO sequence num
 
 	/* Init enviroment JSON object */
 	JSON_Value *env_root_value = json_value_init_object();
@@ -44,8 +44,8 @@ void sendData(int nodeID, int measLocID, char *timestamp, int ambientTemperature
 	json_object_set_number(env_root_object, "nodeID", nodeID);
 	json_object_set_number(env_root_object, "measlocID", measLocID);
 	json_object_set_string(env_root_object, "timestamp", timestamp);
-	json_object_set_number(env_root_object, "ambientTemperature", measLocID);
-	json_object_set_number(env_root_object, "dustLevel", dustLevel);
+	json_object_set_number(env_root_object, "ambientTemperature", ambientTemperature);
+	json_object_set_number(env_root_object, "ambientHumidity", dustLevel); //TODO dustlevel
 	json_object_set_number(env_root_object, "railTemperature", railTemperature);
 
 	/*Serialize JSON structure*/
@@ -66,22 +66,11 @@ void sendData(int nodeID, int measLocID, char *timestamp, int ambientTemperature
 	JSON_Value *mov_root_value = json_value_init_object();
 	JSON_Object *mov_root_object = json_value_get_object(mov_root_value);
 
-	/*Making string */
-	char oString[bigLen];
-	oString[0] = '[';
-	oString[1] = '\"';
-	oString[2] = '\0';
-	strcat(oString, meas1);
-	strcat(oString, "\",\"");
-	strcat(oString, meas2);
-	strcat(oString, "\"]");
-
 	json_object_set_number(mov_root_object, "nodeID", nodeID);
 	json_object_set_number(mov_root_object, "measlocID", measLocID);
 	json_object_set_string(mov_root_object, "startTime", startTime);
-	json_object_set_number(mov_root_object, "measSeqNum", measSeqNum);
 	json_object_set_number(mov_root_object, "duration", duration);
-	json_object_set_value(mov_root_object, "meas", json_parse_string(oString));
+	json_object_set_value(mov_root_object, "meas", meas_array);
 
 	/*Serialize JSON structure*/
 	char *mov_serialized_string = NULL;

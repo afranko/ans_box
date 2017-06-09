@@ -14,7 +14,7 @@
 
 #define	GOVERFLOW	1
 
-#define BUFFER_SIZE		2048 //TODO elég lesz-e a nagy bufferhez is???
+#define BUFFER_SIZE		2048 //TODO elég lesz-e a nagy bufferhez is??? nem, határozottan nem vagy de
 
 /* 1 buffer = 4kByte (1 place = 2 Byte = 1 Word) =>
  * 4 buffer = 16kByte 	=>

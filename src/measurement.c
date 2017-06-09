@@ -6,12 +6,16 @@
 #include "measurement.h"
 
 /* Counter for ADC's channels */
-uint32_t bcounter = 0;
+uint8_t bcounter = 0;
 
 /* Counter for offset head */
 uint16_t ocounter = 0;
 
-uint16_t noffset = 0;
+uint16_t noffset0 = 0;
+uint16_t noffset1 = 0;
+uint16_t noffset2 = 0;
+uint16_t noffset3 = 0;
+
 uint16_t poffset = 0;
 bool offMeas = false;
 bool mFlag = false;
@@ -46,14 +50,23 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 		}
 
 		/* Increment counter*/
-		bcounter++; //TODO overflow?
+		bcounter++;
 	}
 	meas_datamove();
 }
 
 uint16_t read_last(cBuff *buff_c)
 {
-	uint16_t lastData = buff_c->buffer[(buff_c->head)-1];
+	uint16_t temphead;
+	if(buff_c->head == 0)
+	{
+		temphead = BUFFER_SIZE - 1;
+	}
+	else
+	{
+		temphead = buff_c->head - 1;
+	}
+	uint16_t lastData = buff_c->buffer[temphead];
 	return lastData;
 }
 
@@ -64,30 +77,52 @@ void meas_datamove(void)
 	{
 		CLEAR_FLAG = false;
 		ocounter = 0;
-		noffset = 0;
+		noffset0 = 0;
+		noffset1 = 0;
+		noffset2 = 0;
+		noffset3 = 0;
 		poffset = 0;
 		offMeas = false;
 		mFlag = false;
 		endMeas = false;
-		flush_cBuff(&gBuffer);
+		flush_cBuff(&gBuffer0);
+		flush_cBuff(&gBuffer1);
+		flush_cBuff(&gBuffer2);
+		flush_cBuff(&gBuffer3);
 	}
 
 	/* Start reading to the great data buffer */
 	if(S_MEAS_FLAG == true)
 	{
 		S_MEAS_FLAG = false;
-		noffset = cont_0.head;
-		cont_0.tail = cont_0.head+1;
+		noffset0 = (cont_0.head-1) % BUFFER_SIZE;
+		noffset1 = (cont_1.head-1) % BUFFER_SIZE;
+		noffset2 = (cont_2.head-1) % BUFFER_SIZE;
+		noffset3 = (cont_3.head-1) % BUFFER_SIZE;
+
+		cont_0.tail = cont_0.head;
+		cont_1.tail = cont_1.head;
+		cont_2.tail = cont_2.head;
+		cont_3.tail = cont_3.head;
+
 		offMeas = true;
 	}
 
 	/* Start reading negative offset */
 	if(offMeas == true)
 	{
-		uint16_t temp_head = (noffset - ocounter) % BUFFER_SIZE;
-		push_cBuff(&gBuffer, cont_0.buffer[temp_head]);
+		uint16_t temp_head = (noffset0 - ((config_s.meas_offset) / 10) + ocounter + 1) % BUFFER_SIZE;
+		push_cBuff(&gBuffer0, cont_0.buffer[temp_head]);
+		temp_head = (noffset1 - ((config_s.meas_offset) / 10) + ocounter + 1) % BUFFER_SIZE;
+		push_cBuff(&gBuffer1, cont_1.buffer[temp_head]);
+		temp_head = (noffset2 - ((config_s.meas_offset) / 10) + ocounter + 1) % BUFFER_SIZE;
+		push_cBuff(&gBuffer2, cont_2.buffer[temp_head]);
+		temp_head = (noffset3 - ((config_s.meas_offset) / 10) + ocounter + 1) % BUFFER_SIZE;
+		push_cBuff(&gBuffer3, cont_3.buffer[temp_head]);
+
 		ocounter++;
-		if(temp_head == (noffset - ((config_s.meas_offset) / 10)) % BUFFER_SIZE)
+
+		if(temp_head == noffset0)
 		{
 			offMeas = false;
 			mFlag = true;
@@ -96,7 +131,7 @@ void meas_datamove(void)
 	}
 
 	/* End of the measurement */
-	if(poffset == cont_0.tail)
+	if(mFlag == true && poffset == cont_0.tail)
 	{
 		mFlag = false;
 		endMeas = true;
@@ -105,28 +140,94 @@ void meas_datamove(void)
 	/* Start reding measurement data */
 	if(mFlag == true)
 	{
-		uint16_t data;
-		pop_cBuff(&cont_0, &data);
-		push_cBuff(&gBuffer, data);
+		uint16_t d_data;
+		if(pop_cBuff(&cont_0, &d_data) != cBuff_EMPTY)
+		{
+			push_cBuff(&gBuffer0, d_data);
+		}
+
+		if(pop_cBuff(&cont_1, &d_data) != cBuff_EMPTY)
+		{
+			push_cBuff(&gBuffer1, d_data);
+		}
+
+		if(pop_cBuff(&cont_2, &d_data) != cBuff_EMPTY)
+		{
+			push_cBuff(&gBuffer2, d_data);
+		}
+
+		if(pop_cBuff(&cont_3, &d_data) != cBuff_EMPTY)
+		{
+			push_cBuff(&gBuffer3, d_data);
+		}
 	}
 
 	/* Set positive offset head */
 	if(E_MEAS_FLAG == true)
 	{
-		poffset = cont_0.head+1;
+		poffset = cont_0.head;
 		E_MEAS_FLAG = false;
 	}
 
-	if(endMeas == true)
+	if(endMeas == true)			//TODO még ezt pontosítani kell, mert ide-oda elcsúszhatnak eggyel
 	{
-		uint16_t temp_head = (poffset + ocounter) % BUFFER_SIZE;
-		push_cBuff(&gBuffer, cont_0.buffer[temp_head]);
-		ocounter++;
-		if(temp_head == (noffset + ((config_s.meas_offset) / 10)) % BUFFER_SIZE)
+		uint16_t e_data;
+
+		if(pop_cBuff(&cont_0, &e_data) != cBuff_EMPTY)
+		{
+			push_cBuff(&gBuffer0, e_data);
+		}
+
+		if(pop_cBuff(&cont_1, &e_data) != cBuff_EMPTY)
+		{
+			push_cBuff(&gBuffer1, e_data);
+		}
+
+		if(pop_cBuff(&cont_2, &e_data) != cBuff_EMPTY)
+		{
+			push_cBuff(&gBuffer2, e_data);
+		}
+
+		if(pop_cBuff(&cont_3, &e_data) != cBuff_EMPTY)
+		{
+			push_cBuff(&gBuffer3, e_data);
+		}
+
+		if(cont_0.tail == (poffset + ((config_s.meas_offset) / 10) - 1) % BUFFER_SIZE)
 		{
 			endMeas = false;
 			ocounter = 0;
 			MSG_FLAG = true;
 		}
 	}
+}
+
+void dataparse(uint16_t data, char *itoabuff)
+{
+	for(uint8_t i = 0; i < 5; i++)
+	{
+		itoabuff[i] = 0;
+	}
+
+	uint8_t ccounter = 5;
+	char ascbuf [5];
+	itoa(data, ascbuf, 10);
+
+	if(data == 0)
+	{
+		data++;
+	}
+
+	while(data != 0)
+	{
+		data = data/10;
+		ccounter--;
+	}
+
+	for(uint8_t i = 0; i < ccounter; i++)
+	{
+		itoabuff[i] = '0';
+	}
+	strcat(itoabuff, ascbuf);
+	return;
 }

@@ -22,7 +22,7 @@ volatile uint32_t counter = 0;
  * */
 
 char MQTT_HOST[] = "mantis1.tmit.bme.hu";	//MQTT broker adress
-char MQTT_PORT[] = "1883";					//MQTT broker portnumber
+char MQTT_PORT[] = "80";					//MQTT broker portnumber
 char clientName[] = "MANTIS_BOX_3";			//MQTT clientname
 char GSM_provider[] = "internet.telekom";	//SIM CARD's GSM Provider
 char pingRespMultiplier = 3;				//Below

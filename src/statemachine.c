@@ -4,7 +4,7 @@
 
 #include "statemachine.h"
 
-const uint32_t timeout = 10000;	//	Timeout in ms //TODO jSON TIMEOUT?
+const uint32_t timeout = 8000;	//	Timeout in ms //TODO jSON TIMEOUT?
 
 bool S_MEAS_FLAG = false;			// Start measurement flag
 bool E_MEAS_FLAG = false;			// End measurement flag
@@ -136,7 +136,7 @@ void p_start(void)
 			restart_init();
 		}
 
-		pos = read_last(&cont_0);
+		pos = read_last(&cont_0); //TODO egy adatsore elég?
 
 		/*Check if we can start operating*/
 		if((pos > config_s.threshold_max) || (pos < config_s.threshold_min))

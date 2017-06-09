@@ -27,23 +27,39 @@ Settings_HandleTypeDef config_s;
 /*----------------------*/
 //TODO
 
-cBuff cont_0, cont_1, cont_2, cont_3, gBuffer;
+cBuff cont_0, cont_1, cont_2, cont_3, gBuffer0, gBuffer1, gBuffer2, gBuffer3;
 
-extern uint32_t bcounter;
+char sendString[21], asciibuff[5];
+
+cBuff_State ParseFlag;
+uint16_t data_0, data_1 ,data_2, data_3;
+uint8_t MSG_SENT = 0;
+
+/* Notice that cont_0 and gBuffer0 are lead buffers
+ * It's supposed that other buffers acts like their lead buffers
+ * For example: if cont_0.head = 231 => cont_1.head = 231 (changes should end in 40 ms)
+ */
+
+extern uint32_t bcounter; //TODO Ha tudunk másra triggerelni, akkor is oké. pl.: RTC MQTT-n keresztül
+extern bool MSG_FLAG;
 
 int main(void)
 {
 	/* Initialization */
 	init_settings();
 
+	HAL_UART_Transmit(&huart3, "Hello World\n", sizeof("Hello World\n"), 100);
 	/* Init circular buffers */
 	init_cBuff(&cont_0);
 	init_cBuff(&cont_1);
 	init_cBuff(&cont_2);
 	init_cBuff(&cont_3);
-	init_cBuff(&gBuffer);
+	init_cBuff(&gBuffer0);
+	init_cBuff(&gBuffer1);
+	init_cBuff(&gBuffer2);
+	init_cBuff(&gBuffer3);
 
-	//comm_init();
+ 	CommInit(&huart3, 60);
 
 	HAL_ADC_Start_IT(&hadc3);//TODO it? HAL_ADC_Start_IT
 
@@ -53,11 +69,60 @@ int main(void)
 	/* Go to "Start" state */
 	p_start();
 
+	//TODO még mindig vannak bajok
 	while(1)
 	{
 
-		//mqtt_process();
 		statemachine_process();
+		MQTTProcessing();
+
+		/* Send message */
+		if(MSG_FLAG == true)
+		{
+			JSON_Value *value_array = json_value_init_array();
+			JSON_Array *send_array = json_value_get_array(value_array);
+
+
+
+			while(MSG_SENT == 0)
+			{
+				pop_cBuff(&gBuffer0, &data_0);
+				pop_cBuff(&gBuffer1, &data_1);
+				pop_cBuff(&gBuffer2, &data_2);
+				ParseFlag = pop_cBuff(&gBuffer3, &data_3);
+
+				if(ParseFlag == cBuff_EMPTY)
+				{
+
+					ParseFlag = cBuff_OK;
+					sendData(1234, 00000001, "2017.06.09.15:45:12",
+							32, 10, 50, "2017.06.09.16:03:10", 3, 125, value_array);
+
+					MSG_FLAG = false;
+					MSG_SENT = 1;
+				}
+
+				dataparse(data_0, asciibuff);
+				strcpy(sendString, asciibuff);
+
+				dataparse(data_1, asciibuff);
+				strcat(sendString, asciibuff);
+
+				dataparse(data_2, asciibuff);
+				strcat(sendString, asciibuff);
+
+				dataparse(data_3, asciibuff);
+				strcat(sendString, asciibuff);
+
+				json_array_append_string(send_array, sendString);
+
+				/* Publish data to broker */
+
+
+			}
+
+			json_value_free(value_array);
+		}
 
 	}
 

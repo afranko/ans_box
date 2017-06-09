@@ -451,3 +451,11 @@ void load_config_sd()
 	f_close(&CONFIG_F);
 	f_mount(NULL, "", 1);
 }
+
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+{
+	if(huart->Instance == USART3)
+	{
+		serialGet();
+	}
+}
