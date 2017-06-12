@@ -48,7 +48,15 @@ int main(void)
 	/* Initialization */
 	init_settings();
 
-	HAL_UART_Transmit(&huart3, "Hello World\n", sizeof("Hello World\n"), 100);
+	HAL_StatusTypeDef result;
+	int sysclk = HAL_RCC_GetHCLKFreq();
+	result = HAL_UART_Transmit(&huart3, "Hello World\n", strlen("Hello World\n"), 100);
+
+	if(result != HAL_OK)
+	{
+		result = HAL_ERROR;
+		while(1);
+	}
 	/* Init circular buffers */
 	init_cBuff(&cont_0);
 	init_cBuff(&cont_1);

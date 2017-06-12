@@ -35,6 +35,7 @@ system/src/diag/trace_impl.o: ../system/src/diag/trace_impl.c \
  ../system/include/stm32f4-hal/stm32f4xx_hal_tim.h \
  ../system/include/stm32f4-hal/stm32f4xx_hal_tim_ex.h \
  ../system/include/stm32f4-hal/stm32f4xx_hal_uart.h \
+ ../system/include/stm32f4-hal/stm32f4xx_hal_usart.h \
  ../system/include/diag/Trace.h ../system/include/arm/semihosting.h
 
 ../system/include/cmsis/cmsis_device.h:
@@ -110,6 +111,8 @@ system/src/diag/trace_impl.o: ../system/src/diag/trace_impl.c \
 ../system/include/stm32f4-hal/stm32f4xx_hal_tim_ex.h:
 
 ../system/include/stm32f4-hal/stm32f4xx_hal_uart.h:
+
+../system/include/stm32f4-hal/stm32f4xx_hal_usart.h:
 
 ../system/include/diag/Trace.h:
 

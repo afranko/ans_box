@@ -34,6 +34,7 @@ src/edge_comm/edge_comm.o: ../src/edge_comm/edge_comm.c \
  ../system/include/stm32f4-hal/stm32f4xx_hal_tim.h \
  ../system/include/stm32f4-hal/stm32f4xx_hal_tim_ex.h \
  ../system/include/stm32f4-hal/stm32f4xx_hal_uart.h \
+ ../system/include/stm32f4-hal/stm32f4xx_hal_usart.h \
  ../include/edge_comm/GSM_MQTT.h
 
 ../include/edge_comm/edge_comm.h:
@@ -109,5 +110,7 @@ src/edge_comm/edge_comm.o: ../src/edge_comm/edge_comm.c \
 ../system/include/stm32f4-hal/stm32f4xx_hal_tim_ex.h:
 
 ../system/include/stm32f4-hal/stm32f4xx_hal_uart.h:
+
+../system/include/stm32f4-hal/stm32f4xx_hal_usart.h:
 
 ../include/edge_comm/GSM_MQTT.h:

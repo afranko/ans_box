@@ -37,6 +37,7 @@ system/src/cortexm/exception_handlers.o: \
  ../system/include/stm32f4-hal/stm32f4xx_hal_tim.h \
  ../system/include/stm32f4-hal/stm32f4xx_hal_tim_ex.h \
  ../system/include/stm32f4-hal/stm32f4xx_hal_uart.h \
+ ../system/include/stm32f4-hal/stm32f4xx_hal_usart.h \
  ../system/include/arm/semihosting.h ../system/include/diag/Trace.h
 
 ../system/include/cortexm/ExceptionHandlers.h:
@@ -114,6 +115,8 @@ system/src/cortexm/exception_handlers.o: \
 ../system/include/stm32f4-hal/stm32f4xx_hal_tim_ex.h:
 
 ../system/include/stm32f4-hal/stm32f4xx_hal_uart.h:
+
+../system/include/stm32f4-hal/stm32f4xx_hal_usart.h:
 
 ../system/include/arm/semihosting.h:
 

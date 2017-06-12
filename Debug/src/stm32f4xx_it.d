@@ -33,6 +33,7 @@ src/stm32f4xx_it.o: ../src/stm32f4xx_it.c \
  ../system/include/stm32f4-hal/stm32f4xx_hal_tim.h \
  ../system/include/stm32f4-hal/stm32f4xx_hal_tim_ex.h \
  ../system/include/stm32f4-hal/stm32f4xx_hal_uart.h \
+ ../system/include/stm32f4-hal/stm32f4xx_hal_usart.h \
  ../include/stm32f4xx_it.h
 
 ../system/include/stm32f4-hal/stm32f4xx_hal.h:
@@ -104,5 +105,7 @@ src/stm32f4xx_it.o: ../src/stm32f4xx_it.c \
 ../system/include/stm32f4-hal/stm32f4xx_hal_tim_ex.h:
 
 ../system/include/stm32f4-hal/stm32f4xx_hal_uart.h:
+
+../system/include/stm32f4-hal/stm32f4xx_hal_usart.h:
 
 ../include/stm32f4xx_it.h:

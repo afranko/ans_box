@@ -33,7 +33,8 @@ src/measurement.o: ../src/measurement.c ../include/measurement.h \
  ../system/include/stm32f4-hal/stm32f4xx_ll_sdmmc.h \
  ../system/include/stm32f4-hal/stm32f4xx_hal_tim.h \
  ../system/include/stm32f4-hal/stm32f4xx_hal_tim_ex.h \
- ../system/include/stm32f4-hal/stm32f4xx_hal_uart.h ../include/fatfs.h \
+ ../system/include/stm32f4-hal/stm32f4xx_hal_uart.h \
+ ../system/include/stm32f4-hal/stm32f4xx_hal_usart.h ../include/fatfs.h \
  ../include/../src/FatFs/ff.h ../include/../src/FatFs/integer.h \
  ../include/ffconf.h ../include/bsp_driver_sd.h \
  ../include/../src/FatFs/ff_gen_drv.h ../include/../src/FatFs/diskio.h \
@@ -116,6 +117,8 @@ src/measurement.o: ../src/measurement.c ../include/measurement.h \
 ../system/include/stm32f4-hal/stm32f4xx_hal_tim_ex.h:
 
 ../system/include/stm32f4-hal/stm32f4xx_hal_uart.h:
+
+../system/include/stm32f4-hal/stm32f4xx_hal_usart.h:
 
 ../include/fatfs.h:
 

@@ -33,7 +33,8 @@ system/src/cmsis/system_stm32f4xx.o: \
  ../system/include/stm32f4-hal/stm32f4xx_ll_sdmmc.h \
  ../system/include/stm32f4-hal/stm32f4xx_hal_tim.h \
  ../system/include/stm32f4-hal/stm32f4xx_hal_tim_ex.h \
- ../system/include/stm32f4-hal/stm32f4xx_hal_uart.h
+ ../system/include/stm32f4-hal/stm32f4xx_hal_uart.h \
+ ../system/include/stm32f4-hal/stm32f4xx_hal_usart.h
 
 ../system/include/cmsis/stm32f4xx.h:
 
@@ -104,3 +105,5 @@ system/src/cmsis/system_stm32f4xx.o: \
 ../system/include/stm32f4-hal/stm32f4xx_hal_tim_ex.h:
 
 ../system/include/stm32f4-hal/stm32f4xx_hal_uart.h:
+
+../system/include/stm32f4-hal/stm32f4xx_hal_usart.h:

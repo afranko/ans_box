@@ -34,6 +34,7 @@ src/FatFs/ff.o: ../src/FatFs/ff.c ../src/FatFs/ff.h \
  ../system/include/stm32f4-hal/stm32f4xx_hal_tim.h \
  ../system/include/stm32f4-hal/stm32f4xx_hal_tim_ex.h \
  ../system/include/stm32f4-hal/stm32f4xx_hal_uart.h \
+ ../system/include/stm32f4-hal/stm32f4xx_hal_usart.h \
  ../include/bsp_driver_sd.h ../src/FatFs/diskio.h
 
 ../src/FatFs/ff.h:
@@ -111,6 +112,8 @@ src/FatFs/ff.o: ../src/FatFs/ff.c ../src/FatFs/ff.h \
 ../system/include/stm32f4-hal/stm32f4xx_hal_tim_ex.h:
 
 ../system/include/stm32f4-hal/stm32f4xx_hal_uart.h:
+
+../system/include/stm32f4-hal/stm32f4xx_hal_usart.h:
 
 ../include/bsp_driver_sd.h:
 

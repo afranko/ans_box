@@ -35,7 +35,8 @@ system/src/cortexm/_reset_hardware.o: \
  ../system/include/stm32f4-hal/stm32f4xx_ll_sdmmc.h \
  ../system/include/stm32f4-hal/stm32f4xx_hal_tim.h \
  ../system/include/stm32f4-hal/stm32f4xx_hal_tim_ex.h \
- ../system/include/stm32f4-hal/stm32f4xx_hal_uart.h
+ ../system/include/stm32f4-hal/stm32f4xx_hal_uart.h \
+ ../system/include/stm32f4-hal/stm32f4xx_hal_usart.h
 
 ../system/include/cmsis/cmsis_device.h:
 
@@ -110,3 +111,5 @@ system/src/cortexm/_reset_hardware.o: \
 ../system/include/stm32f4-hal/stm32f4xx_hal_tim_ex.h:
 
 ../system/include/stm32f4-hal/stm32f4xx_hal_uart.h:
+
+../system/include/stm32f4-hal/stm32f4xx_hal_usart.h:
