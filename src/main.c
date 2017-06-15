@@ -48,15 +48,6 @@ int main(void)
 	/* Initialization */
 	init_settings();
 
-	HAL_StatusTypeDef result;
-	int sysclk = HAL_RCC_GetHCLKFreq();
-	result = HAL_UART_Transmit(&huart3, "Hello World\n", strlen("Hello World\n"), 100);
-
-	if(result != HAL_OK)
-	{
-		result = HAL_ERROR;
-		while(1);
-	}
 	/* Init circular buffers */
 	init_cBuff(&cont_0);
 	init_cBuff(&cont_1);
@@ -87,9 +78,9 @@ int main(void)
 		/* Send message */
 		if(MSG_FLAG == true)
 		{
+			/*
 			JSON_Value *value_array = json_value_init_array();
 			JSON_Array *send_array = json_value_get_array(value_array);
-
 
 
 			while(MSG_SENT == 0)
@@ -124,15 +115,24 @@ int main(void)
 
 				json_array_append_string(send_array, sendString);
 
-				/* Publish data to broker */
-
 
 			}
+			//elvileg nem kell
 
-			json_value_free(value_array);
+			//json_array_clear(send_array);
+			json_value_free(value_array); //TODO, ez se kell
+			*/
 		}
 
 	}
 
 }
+
+/*
+ * ["b1b2
+uint16_t meas_value;
+uint8_t b1=meas_value;
+uint8_t b2=meas_value>>8;
+*/
+//TODO Csabát megbaszni, szárazon!!!!444!!!
 

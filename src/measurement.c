@@ -23,6 +23,8 @@ bool endMeas = false;
 
 bool MSG_FLAG = false;				// Send message flag
 
+meas_flag_block mfb;
+
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 {
 	if(hadc->Instance == ADC3)
@@ -100,11 +102,19 @@ void meas_datamove(void)
 		noffset2 = (cont_2.head-1) % BUFFER_SIZE;
 		noffset3 = (cont_3.head-1) % BUFFER_SIZE;
 
+		/*
+		 *mfb.noffest0 = (cont_0.head-1) % BUFFER_SIZE;
+		 *mfb.noffest1 = (cont_1.head-1) % BUFFER_SIZE;
+		 *mfb.noffest2 = (cont_2.head-1) % BUFFER_SIZE;
+		 *mfb.noffest3 = (cont_3.head-1) % BUFFER_SIZE;
+		 */
+
 		cont_0.tail = cont_0.head;
 		cont_1.tail = cont_1.head;
 		cont_2.tail = cont_2.head;
 		cont_3.tail = cont_3.head;
 
+		/*mfb.offMeas = true; */
 		offMeas = true;
 	}
 
@@ -137,7 +147,7 @@ void meas_datamove(void)
 		endMeas = true;
 	}
 
-	/* Start reding measurement data */
+	/* Start reading measurement data */
 	if(mFlag == true)
 	{
 		uint16_t d_data;
