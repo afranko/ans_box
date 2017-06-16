@@ -6,10 +6,6 @@
 
 const uint32_t timeout = 8000;	//	Timeout in ms //TODO jSON TIMEOUT?
 
-bool S_MEAS_FLAG = false;			// Start measurement flag
-bool E_MEAS_FLAG = false;			// End measurement flag
-bool CLEAR_FLAG = false;			// Clear measurement flag
-
 /* After init the machine begins to work in START state */
 machine_state m_state = S_START;
 
@@ -19,7 +15,7 @@ machine_state (*func_arr[5])(void);
 machine_state p_error(void) //WHAT ABOUT INF CYCLE? TODO
 {
 	uint16_t position;
-	CLEAR_FLAG = true;
+	mfb.CLEAR_FLAG = true;
 
 	while(1) //TODO anything else?
 	{
@@ -45,7 +41,7 @@ machine_state p_low(void)
 	uint16_t position = read_last(&cont_0);
 	if(position > config_s.threshold_min)
 	{
-		S_MEAS_FLAG = true;
+		mfb.S_MEAS_FLAG = true;
 		return S_MEAS_UP;
 	}
 	return S_LOW;
@@ -56,7 +52,7 @@ machine_state p_high(void)
 	uint16_t position = read_last(&cont_0);
 	if(position < config_s.threshold_max)
 	{
-		S_MEAS_FLAG = true;
+		mfb.S_MEAS_FLAG = true;
 		return S_MEAS_DOWN;
 	}
 	return S_HIGH;
@@ -81,7 +77,7 @@ machine_state p_meas_up(void)
 
 		if(position > config_s.threshold_max)
 		{
-			E_MEAS_FLAG = true;
+			mfb.E_MEAS_FLAG = true;
 			return S_HIGH;
 		}
 	}
@@ -105,7 +101,7 @@ machine_state p_meas_down(void)
 
 		if(position < config_s.threshold_min)
 		{
-			E_MEAS_FLAG = true;
+			mfb.E_MEAS_FLAG = true;
 			return S_LOW;
 		}
 	}

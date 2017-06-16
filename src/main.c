@@ -40,13 +40,16 @@ uint8_t MSG_SENT = 0;
  * For example: if cont_0.head = 231 => cont_1.head = 231 (changes should end in 40 ms)
  */
 
-extern uint32_t bcounter; //TODO Ha tudunk másra triggerelni, akkor is oké. pl.: RTC MQTT-n keresztül
-extern bool MSG_FLAG;
+extern uint32_t bcounter; /*TODO Ha tudunk másra triggerelni, akkor is oké.
+pl.: RTC MQTT-n keresztül, vagy mégjobb: offset_100HZ hogy mindig legyen elég adat */
+
+extern meas_flag_block mfb;
 
 int main(void)
 {
 	/* Initialization */
 	init_settings();
+	init_meas_flag_block(&mfb);
 
 	/* Init circular buffers */
 	init_cBuff(&cont_0);
@@ -58,7 +61,7 @@ int main(void)
 	init_cBuff(&gBuffer2);
 	init_cBuff(&gBuffer3);
 
- 	CommInit(&huart3, 60);
+ 	//CommInit(&huart3, 60);
 
 	HAL_ADC_Start_IT(&hadc3);//TODO it? HAL_ADC_Start_IT
 
@@ -73,11 +76,13 @@ int main(void)
 	{
 
 		statemachine_process();
-		MQTTProcessing();
+		//MQTTProcessing();
 
 		/* Send message */
-		if(MSG_FLAG == true)
+		if(mfb.MSG_FLAG == true)
 		{
+			int zota = 0;
+			zota++;
 			/*
 			JSON_Value *value_array = json_value_init_array();
 			JSON_Array *send_array = json_value_get_array(value_array);
