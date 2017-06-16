@@ -47,6 +47,7 @@ extern meas_flag_block mfb;
 
 int main(void)
 {
+	uint32_t co = 0;
 	/* Initialization */
 	init_settings();
 	init_meas_flag_block(&mfb);
@@ -77,12 +78,13 @@ int main(void)
 
 		statemachine_process();
 		//MQTTProcessing();
-
+		co++;
 		/* Send message */
-		if(mfb.MSG_FLAG == true)
+		if(mfb.MSG_FLAG == true && co > 0)
 		{
 			int zota = 0;
 			zota++;
+			co++;
 			/*
 			JSON_Value *value_array = json_value_init_array();
 			JSON_Array *send_array = json_value_get_array(value_array);
@@ -139,5 +141,4 @@ uint16_t meas_value;
 uint8_t b1=meas_value;
 uint8_t b2=meas_value>>8;
 */
-//TODO Csabát megbaszni, szárazon!!!!444!!!
 

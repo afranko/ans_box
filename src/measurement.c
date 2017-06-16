@@ -126,7 +126,7 @@ void meas_datamove(void)
 
 		push_cBuff(&gBuffer3, cont_3.buffer[(temp_head % BUFFER_SIZE)]);
 
-		if((config_s.meas_offset/10) == mfb.ocounter)
+		if((config_s.meas_offset/10) <= mfb.ocounter)
 		{
 			mfb.offMeas = false;
 			mfb.mFlag = true;
@@ -139,7 +139,7 @@ void meas_datamove(void)
 	if((mfb.measc0 == mfb.measLength) &&
 			(mfb.measc1 == mfb.measLength) &&
 				(mfb.measc2 == mfb.measLength) &&
-					(mfb.measc3 == mfb.measLength))
+					(mfb.measc3 == mfb.measLength) && (mfb.mFlag == true))
 	{
 		mfb.mFlag = false;
 		mfb.endMeas = true;
@@ -148,13 +148,8 @@ void meas_datamove(void)
 	/* Set positive offset head */
 	if(mfb.E_MEAS_FLAG == true)
 	{
-		/* Set offset headers */
-		mfb.pofc0 = cont_0.head; //TODO that's not correct -> need fast fix
-		mfb.pofc1 = cont_1.head;
-		mfb.pofc2 = cont_2.head;
-		mfb.pofc3 = cont_3.head;
-
-		mfb.measLength = (mfb.pofc0) - (mfb.noffset0+1);
+		/*Set measurement length */
+		mfb.measLength = (cont_0.head) - (mfb.noffset0+1);
 
 		mfb.E_MEAS_FLAG = false;
 	}
@@ -271,6 +266,8 @@ void init_meas_flag_block(meas_flag_block *flagBlock)
 	flagBlock->noffset1 = 0;
 	flagBlock->noffset2 = 0;
 	flagBlock->noffset3 = 0;
+
+	flagBlock->ocounter = 0;
 
 	flagBlock->offMeas = false;
 
