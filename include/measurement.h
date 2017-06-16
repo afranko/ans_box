@@ -41,13 +41,12 @@ typedef struct measurement_flag_block_t
 	CLEAR_FLAG,				// Clear measurement flag
 	MSG_FLAG;				// Send message flag
 
-}meas_flag_block; //TODO
+}meas_flag_block;
 
 extern cBuff cont_0, cont_1, cont_2, cont_3, gBuffer0, gBuffer1, gBuffer2, gBuffer3;
 
 uint16_t read_last(cBuff *buff_c);
 void meas_datamove(void);
-void dataparse(uint16_t data, char *itoabuff);
 void init_meas_flag_block(meas_flag_block *flagBlock);
 
 #endif /* MEASUREMENT_H_ */

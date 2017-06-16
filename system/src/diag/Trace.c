@@ -17,12 +17,10 @@
 #endif
 
 // ----------------------------------------------------------------------------
-//rerouting it to debug.txt if release mode
 
 int
 trace_printf(const char* format, ...)
 {
-
   int ret;
   va_list ap;
 
@@ -41,11 +39,7 @@ trace_printf(const char* format, ...)
     }
 
   va_end (ap);
-
-  int written;
   return ret;
-
-
 }
 
 int

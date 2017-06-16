@@ -19,7 +19,7 @@ void init_settings()
 	  MX_GPIO_Init();
 	  MX_ADC3_Init();
 	  MX_I2C2_Init();
-	  //MX_RTC_Init(); //TODO RTC INIT
+	  MX_RTC_Init();
 	  MX_SDIO_SD_Init();
 	  MX_TIM2_Init();
 	  MX_TIM4_Init();

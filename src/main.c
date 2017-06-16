@@ -29,10 +29,10 @@ Settings_HandleTypeDef config_s;
 
 cBuff cont_0, cont_1, cont_2, cont_3, gBuffer0, gBuffer1, gBuffer2, gBuffer3;
 
-char sendString[21], asciibuff[5];
-
-cBuff_State ParseFlag;
-uint16_t data_0, data_1 ,data_2, data_3;
+cBuff_State parse_flag;
+uint16_t msg_data;
+uint8_t ch_data;
+char msg_string[8];
 uint8_t MSG_SENT = 0;
 
 /* Notice that cont_0 and gBuffer0 are lead buffers
@@ -47,7 +47,7 @@ extern meas_flag_block mfb;
 
 int main(void)
 {
-	uint32_t co = 0;
+
 	/* Initialization */
 	init_settings();
 	init_meas_flag_block(&mfb);
@@ -78,57 +78,63 @@ int main(void)
 
 		statemachine_process();
 		//MQTTProcessing();
-		co++;
+
+
 		/* Send message */
-		if(mfb.MSG_FLAG == true && co > 0)
+		if(mfb.MSG_FLAG == true)
 		{
-			int zota = 0;
-			zota++;
-			co++;
-			/*
+
 			JSON_Value *value_array = json_value_init_array();
 			JSON_Array *send_array = json_value_get_array(value_array);
 
-
 			while(MSG_SENT == 0)
 			{
-				pop_cBuff(&gBuffer0, &data_0);
-				pop_cBuff(&gBuffer1, &data_1);
-				pop_cBuff(&gBuffer2, &data_2);
-				ParseFlag = pop_cBuff(&gBuffer3, &data_3);
+				/* Buffer0 data */
+				pop_cBuff(&gBuffer0, &msg_data);
+				ch_data = (uint8_t) msg_data;
+				msg_string[0] = ch_data;
+				ch_data = (uint8_t) msg_data >> 8;
+				msg_string[1] = ch_data;
 
-				if(ParseFlag == cBuff_EMPTY)
+				/* Buffer1 data */
+				pop_cBuff(&gBuffer1, &msg_data);
+				ch_data = (uint8_t) msg_data;
+				msg_string[2] = ch_data;
+				ch_data = (uint8_t) msg_data >> 8;
+				msg_string[3] = ch_data;
+
+				/* Buffer2 data */
+				pop_cBuff(&gBuffer2, &msg_data);
+				ch_data = (uint8_t) msg_data;
+				msg_string[4] = ch_data;
+				ch_data = (uint8_t) msg_data >> 8;
+				msg_string[5] = ch_data;
+
+				/* Buffer3 data */
+				parse_flag = pop_cBuff(&gBuffer3, &msg_data);
+				ch_data = (uint8_t) msg_data;
+				msg_string[6] = ch_data;
+				ch_data = (uint8_t) msg_data >> 8;
+				msg_string[7] = ch_data;
+
+				/* Send message if there is not any data */
+				if(parse_flag == cBuff_EMPTY)
 				{
 
-					ParseFlag = cBuff_OK;
 					sendData(1234, 00000001, "2017.06.09.15:45:12",
 							32, 10, 50, "2017.06.09.16:03:10", 3, 125, value_array);
 
-					MSG_FLAG = false;
+					mfb.MSG_FLAG = false;
 					MSG_SENT = 1;
 				}
 
-				dataparse(data_0, asciibuff);
-				strcpy(sendString, asciibuff);
-
-				dataparse(data_1, asciibuff);
-				strcat(sendString, asciibuff);
-
-				dataparse(data_2, asciibuff);
-				strcat(sendString, asciibuff);
-
-				dataparse(data_3, asciibuff);
-				strcat(sendString, asciibuff);
-
-				json_array_append_string(send_array, sendString);
-
-
+				/* Add measurement to array */
+				json_array_append_string(send_array, msg_string);
 			}
-			//elvileg nem kell
 
-			//json_array_clear(send_array);
-			json_value_free(value_array); //TODO, ez se kell
-			*/
+			/* Reset SENT FLAG */
+			MSG_SENT = 0;
+			json_value_free(value_array);
 		}
 
 	}

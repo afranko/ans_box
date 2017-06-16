@@ -225,36 +225,6 @@ void meas_datamove(void)
 	}
 }
 
-void dataparse(uint16_t data, char *itoabuff)
-{
-	for(uint8_t i = 0; i < 5; i++)
-	{
-		itoabuff[i] = 0;
-	}
-
-	uint8_t ccounter = 5;
-	char ascbuf [5];
-	itoa(data, ascbuf, 10);
-
-	if(data == 0)
-	{
-		data++;
-	}
-
-	while(data != 0)
-	{
-		data = data/10;
-		ccounter--;
-	}
-
-	for(uint8_t i = 0; i < ccounter; i++)
-	{
-		itoabuff[i] = '0';
-	}
-	strcat(itoabuff, ascbuf);
-	return;
-}
-
 void init_meas_flag_block(meas_flag_block *flagBlock)
 {
 	flagBlock->S_MEAS_FLAG = false;
