@@ -33,58 +33,79 @@ void CommInit(UART_HandleTypeDef *huart, unsigned long KeepAlive)
  *
  */
 
-void sendData(int nodeID, int measLocID, char *timestamp, int ambientTemperature, int dustLevel, int railTemperature, char *startTime,
-			int measSeqNum, int duration, JSON_Value *meas_array)
-{//TODO sequence num
+void sendMovementMessage(JSON_Value *measurement_array)
+{
+	/* Init JSON Object */
+	JSON_Value *root_value = json_value_init_object();
+	JSON_Object *root_object = json_value_get_object(root_value);
+	char *serialized_string = NULL;
 
-	/* Init enviroment JSON object */
-	JSON_Value *env_root_value = json_value_init_object();
-	JSON_Object *env_root_object = json_value_get_object(env_root_value);
+	/* Init Big Array */
+	JSON_Value *arr_val = json_value_init_array();
+	JSON_Array *arr_obj = json_value_get_array(arr_val);
 
-	json_object_set_number(env_root_object, "nodeID", nodeID);
-	json_object_set_number(env_root_object, "measlocID", measLocID);
-	json_object_set_string(env_root_object, "timestamp", timestamp);
-	json_object_set_number(env_root_object, "ambientTemperature", ambientTemperature);
-	json_object_set_number(env_root_object, "ambientHumidity", dustLevel); //TODO dustlevel
-	json_object_set_number(env_root_object, "railTemperature", railTemperature);
+	/* Add array to object */
+	json_object_set_value(root_object, "hasAttributes", arr_val);
 
-	/*Serialize JSON structure*/
-	char *env_serialized_string = NULL;
-	env_serialized_string = json_serialize_to_string_pretty(env_root_value);
+		/* Array block */
+		JSON_Value *arrval = json_value_init_object();
+	    JSON_Object *arro = json_value_get_object(arrval);
 
-	/*Publish JSON*/
+	    json_object_set_string(arro, "hasAttributeClazzType", "DA");
+	    json_object_set_string(arro, "hasName", "mov_meas");
+
+	    	/* Sub Array Block */
+	    	JSON_Value *arrsub_arr = json_value_init_array();
+	    	JSON_Array *arrsub_obj = json_value_get_array(arrsub_arr);
+
+	    	json_object_set_value(arro, "hasValueContainers", arrsub_arr);
+
+	    		/* Sub Object no.1 */
+	    		JSON_Value *arrsub_val_1 = json_value_init_object();
+	    		JSON_Object *arrsub_o_1 = json_value_get_object(arrsub_val_1);
+
+	    		json_object_dotset_value(arrsub_o_1, "hasValue.value", measurement_array);
+	    		json_object_dotset_string(arrsub_o_1, "uuid.value", "move");
+
+	    		json_array_append_value(arrsub_obj, arrsub_val_1);
+
+	    		/* Sub Object no.2 */
+	    		JSON_Value *arrsub_val_2 = json_value_init_object();
+	    		JSON_Object *arrsub_o_2 = json_value_get_object(arrsub_val_2);
+
+	    		json_object_dotset_number(arrsub_o_2, "hasValue.value", 125); // Ez most mi a tököm?
+	    		json_object_dotset_string(arrsub_o_2, "uuid.value", "duration");
+	    		json_array_append_value(arrsub_obj, arrsub_val_2);
+
+	    /* Append the big array */
+	    json_array_append_value(arr_obj, arrval);
+
+	    /* Remaining pairs */
+	    json_object_dotset_string(root_object, "hasEventDescriptionUuid.value", "5392");
+
+	    JSON_Value *loc2val = json_value_init_object();
+	    JSON_Object *loc2 = json_value_get_object(loc2val);
+	    json_object_set_string(loc2, "value", "-7482202863293359861");
+	    json_object_dotset_value(root_object, "hasLocation.measLocId", loc2val);
+
+	    JSON_Value *times2val = json_value_init_object();
+	    JSON_Object *times2 = json_value_get_object(times2val);
+
+	    json_object_set_string(times2, "format", "DATETIME");
+	    json_object_set_string(times2, "value", "2017.04.19.9:45:12");
+
+	    json_object_dotset_value(root_object, "hasTimestamp.hasUTCDateTime", times2val);
+
+	serialized_string = json_serialize_to_string_pretty(root_value);
+
+	/* Publish JSON */
 	if(available(&MQTT))
 	{
-		publish(&MQTT, QoSVal.s_DUP, QoSVal.s_QoS, QoSVal.s_RETAIN, _generateMessageID(&MQTT), "/environment", env_serialized_string);
+		publish(&MQTT, QoSVal.s_DUP, QoSVal.s_QoS, QoSVal.s_RETAIN, _generateMessageID(&MQTT), "/movement", serialized_string);
 	}
 
-	/*Free memory*/
-	json_free_serialized_string(env_serialized_string);
-	json_value_free(env_root_value);
-
-	/* Init movement JSON object */
-	JSON_Value *mov_root_value = json_value_init_object();
-	JSON_Object *mov_root_object = json_value_get_object(mov_root_value);
-
-	json_object_set_number(mov_root_object, "nodeID", nodeID);
-	json_object_set_number(mov_root_object, "measlocID", measLocID);
-	json_object_set_string(mov_root_object, "startTime", startTime);
-	json_object_set_number(mov_root_object, "duration", duration);
-	json_object_set_value(mov_root_object, "meas", meas_array);
-
-	/*Serialize JSON structure*/
-	char *mov_serialized_string = NULL;
-	mov_serialized_string = json_serialize_to_string_pretty(mov_root_value);
-
-	/*Publish JSON*/
-	if(available(&MQTT))
-	{
-		publish(&MQTT, QoSVal.s_DUP, QoSVal.s_QoS, QoSVal.s_RETAIN, _generateMessageID(&MQTT), "/movement", mov_serialized_string);
-	}
-
-	/*Free memory*/
-	json_free_serialized_string(mov_serialized_string);
-	json_value_free(mov_root_value);
+	json_free_serialized_string(serialized_string);
+	json_value_free(root_value);
 
 	return;
 }

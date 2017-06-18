@@ -57,7 +57,6 @@
 #define CONNECTED             1
 #define NO_ACKNOWLEDGEMENT  255
 
-void SysTick_Handler_GSM(void);
 uint32_t millis(void);
 
 typedef struct serial_buff_t{

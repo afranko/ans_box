@@ -19,7 +19,7 @@ void init_settings()
 	  MX_GPIO_Init();
 	  MX_ADC3_Init();
 	  MX_I2C2_Init();
-	  MX_RTC_Init();
+	  //MX_RTC_Init(); //TODO
 	  MX_SDIO_SD_Init();
 	  MX_TIM2_Init();
 	  MX_TIM4_Init();
@@ -289,7 +289,7 @@ void MX_USART3_UART_Init(void)
   __GPIOB_CLK_ENABLE();
   __USART3_CLK_ENABLE();
   huart3.Instance = USART3;
-  huart3.Init.BaudRate = 115200;
+  huart3.Init.BaudRate = 115200; //TODO overrun
   huart3.Init.WordLength = UART_WORDLENGTH_8B;
   huart3.Init.StopBits = UART_STOPBITS_1;
   huart3.Init.Parity = UART_PARITY_NONE;
@@ -451,12 +451,4 @@ void load_config_sd()
 
 	f_close(&CONFIG_F);
 	f_mount(NULL, "", 1);
-}
-
-void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
-{
-	if(huart->Instance == USART3)
-	{
-		serialGet();
-	}
 }

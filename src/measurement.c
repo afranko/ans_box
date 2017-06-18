@@ -68,6 +68,7 @@ void meas_datamove(void)
 		flush_cBuff(&gBuffer1);
 		flush_cBuff(&gBuffer2);
 		flush_cBuff(&gBuffer3);
+		mfb.CLEAR_FLAG = false;
 	}
 
 	/* Start reading to the great data buffer */

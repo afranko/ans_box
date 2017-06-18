@@ -14,7 +14,6 @@ uint8_t GSM_Response = 0;
 unsigned long previousMillis = 0;
 uint8_t pingSentCounter = 0;
 bool stringComplete = false;
-volatile uint32_t counter = 0;
 
 
 /* Users' settings
@@ -56,6 +55,8 @@ void AutoConnect(GSM_MQTT *object)
 /* When connection is stable */
 void OnConnect(GSM_MQTT *object)
 {
+	publish(object, 0, 0, 1, _generateMessageID(object), "/welcome", "HELLO ANSALDO!");
+	//TODO
 
 }
 
@@ -70,17 +71,10 @@ void OnMessage(char *Topic, int TopicLength, char *Message, int MessageLength)
  * */
 
 
-/* Arduino's millis() function equivalent (counting starts at initialization GSM_MQTT object - 1st function
- * Call this function in SysTick_Handler_GSM */
-void SysTick_Handler_GSM(void)
-{
-  counter++;
-}
-
-/* Arduino's millis() function equivalent - 2nd function */
+/* Arduino's millis() function equivalent*/
 uint32_t millis()
 {
-  return counter;
+  return HAL_GetTick();
 }
 
 void initSerialBuf(serialBuff *buff)
@@ -220,9 +214,6 @@ void GSM_MQTT_constructor(GSM_MQTT *object, unsigned long KeepAlive, UART_Handle
 	object->gsm_uart = huart;
 	object->uartFlag = 0;
 	object->respFlag = false;
-
-	/*start SysTick - Aurdino "millis" equivalent */
-	SysTick_Config(SystemCoreClock / 1000);
 }
 
 void begin(GSM_MQTT* object)
@@ -293,7 +284,7 @@ void _tcpInit(GSM_MQTT* object)
       /* no break */
     case 1:
       {
-        if(_sendAT(object, "ATE1\r\n", 3000) == 1)
+        if(_sendAT(object, "ATE0\r\n", 3000) == 1)
         {
           object->modemStatus = 2;
         }
@@ -308,6 +299,7 @@ void _tcpInit(GSM_MQTT* object)
       {
         if (sendATreply(object, "AT+CREG?\r\n", "0,1", 5000) == 1)
         {
+          HAL_Delay(2000);
           _sendAT(object, "AT+CIPMUX=0\r\n", 2000);
           _sendAT(object, "AT+CIPMODE=1\r\n", 2000);
           if(sendATreply(object, "AT+CGATT?\r\n", ": 1", 4000) != 1)
@@ -328,6 +320,7 @@ void _tcpInit(GSM_MQTT* object)
       {
         if(object->GSM_ReplyFlag != 7)
         {
+        	HAL_Delay(2000);
           object->_tcpStatus = sendATreply(object, "AT+CIPSTATUS\r\n", "STATE", 5000);
           if(object->_tcpStatusPrev == object->_tcpStatus)
           {
@@ -352,7 +345,7 @@ void _tcpInit(GSM_MQTT* object)
               /*_sendAT(object, "AT+CGDCONT=1,\"IP\",\"internet.telekom\"\r\n", 5000); //Only at first use
               serialWrite(object, "CGDCONT=1,\"IP\",\"") ;
               serialWrite(object, GSM_provider) ;
-              _sendAT(object, "\"\r\n", 5000); */
+              _sendAT(object, "\"\r\n", 5000);*/
 
               serialWrite(object, "AT+CSTT=\"") ;
               serialWrite(object, GSM_provider) ;
@@ -371,11 +364,14 @@ void _tcpInit(GSM_MQTT* object)
             }
           case 5:
             {
-              serialWrite(object, "AT+CIPSTART=\"TCP\",\"");
-              serialWrite(object, MQTT_HOST);
-              serialWrite(object, "\",\"");
-              serialWrite(object, MQTT_PORT);
-              if(_sendAT(object, "\"\r\n", 5000) == 1)
+
+              char  s_string[sizeof(MQTT_HOST)+sizeof(MQTT_PORT)+sizeof("AT+CIPSTART=\"TCP\",\"\",\"\"\r\n")-2];
+              strcpy(s_string, "AT+CIPSTART=\"TCP\",\"");
+              strcat(s_string, MQTT_HOST);
+              strcat(s_string, "\",\"");
+              strcat(s_string, MQTT_PORT);
+              strcat(s_string, "\"\r\n");
+              if(_sendAT(object, s_string, 10000) == 1)
               {
                 unsigned long PrevMillis = millis();
                 unsigned long currentMillis = millis();
