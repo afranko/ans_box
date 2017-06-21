@@ -140,13 +140,15 @@ void serialPrint(GSM_MQTT *object, char value)
 /* Use when you want to send a char string */
 void serialWrite(GSM_MQTT *object, char *string)
 {
+	/*
 	int string_length = strlen(string);
 	uint8_t s_buffer[string_length];
 	for(int i = 0; i < string_length; i++)
 	{
 		s_buffer[i] = (uint8_t)string[i];
 	}
-	HAL_UART_Transmit(object->gsm_uart, s_buffer, sizeof(s_buffer), HAL_MAX_DELAY);
+	HAL_UART_Transmit(object->gsm_uart, s_buffer, sizeof(s_buffer), HAL_MAX_DELAY);*/
+	HAL_UART_Transmit(object->gsm_uart, string, sizeof(string), HAL_MAX_DELAY); //TODO
 }
 
 /* Logging function - you can write your code below to log */

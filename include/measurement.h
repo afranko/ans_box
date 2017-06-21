@@ -48,5 +48,6 @@ extern cBuff cont_0, cont_1, cont_2, cont_3, gBuffer0, gBuffer1, gBuffer2, gBuff
 uint16_t read_last(cBuff *buff_c);
 void meas_datamove(void);
 void init_meas_flag_block(meas_flag_block *flagBlock);
+void intoa_conv(uint16_t data, char *ibuffer);
 
 #endif /* MEASUREMENT_H_ */

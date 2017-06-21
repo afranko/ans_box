@@ -257,3 +257,36 @@ void init_meas_flag_block(meas_flag_block *flagBlock)
 
 	flagBlock->endMeas = false;
 }
+
+void intoa_conv(uint16_t data, char *ibuffer)
+{
+	for(uint8_t j = 0; j < 5; j++)
+	{
+		ibuffer[j] = 0;
+	}
+
+	uint8_t len_0 = 4;
+	char s_buf[5];
+
+	itoa(data, s_buf, 10);
+
+	if(data == 0)
+	{
+		len_0--;
+	}
+
+	while(data != 0)
+	{
+		data = data / 10;
+		len_0--;
+	}
+
+	for(uint8_t i = 0; i < len_0; i++)
+	{
+		ibuffer[i] = '0';
+	}
+
+	strcat(ibuffer, s_buf);
+	ibuffer[4] = 0;
+	return;
+}
