@@ -9,9 +9,10 @@ typedef struct settings_t
 {
 	uint16_t threshold_min;		// [min 0] -
 	uint16_t threshold_max;		// [max 4095]
-	uint16_t meas_timeout; 		// [ms]
+	uint16_t meas_timeout; 		// [ms] - 2 byte should be enough - max. 65 sec
 	uint16_t meas_offset;		// [ms]
 	uint16_t env_meas_freq;		// [s]
+	//uint32_t meas_loc_id;		// 1 byte, 2 byte, 4 byte?
 	char mqtt_host[50];
 	char port[5];
 	char gsm_apn[30];

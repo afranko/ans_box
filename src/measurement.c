@@ -94,6 +94,9 @@ void meas_datamove(void)
 		/* Clear START FLAG */
 		mfb.S_MEAS_FLAG = false;
 
+		/* Set timer */
+		mfb.duration = HAL_GetTick();
+
 	}
 
 	/* Start reading negative offset */
@@ -220,8 +223,15 @@ void meas_datamove(void)
 						(mfb.pofc2 == (config_s.meas_offset/10)) &&
 							(mfb.pofc3 == (config_s.meas_offset/10)))
 		{
+
+			/* Reset End of Measurement flag */
 			mfb.endMeas = false;
+
+			/* Set Send Message Flag */
 			mfb.MSG_FLAG = true;
+
+			/* Set Timer */
+			mfb.duration = (HAL_GetTick() - mfb.duration);
 		}
 	}
 }
@@ -256,6 +266,7 @@ void init_meas_flag_block(meas_flag_block *flagBlock)
 	flagBlock->pofc3 = 0;
 
 	flagBlock->endMeas = false;
+	flagBlock->duration = 0;
 }
 
 void intoa_conv(uint16_t data, char *ibuffer)

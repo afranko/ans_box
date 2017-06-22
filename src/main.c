@@ -126,7 +126,7 @@ int main(void)
 				if(parse_flag == cBuff_EMPTY)
 				{
 
-					sendMovementMessage(value_array);
+					sendMovementMessage(mfb.duration ,value_array);
 					sendEnvironmentMessage();
 
 					mfb.MSG_FLAG = false;

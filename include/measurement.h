@@ -41,6 +41,8 @@ typedef struct measurement_flag_block_t
 	CLEAR_FLAG,				// Clear measurement flag
 	MSG_FLAG;				// Send message flag
 
+	uint32_t duration;		// Measurement Duration
+
 }meas_flag_block;
 
 extern cBuff cont_0, cont_1, cont_2, cont_3, gBuffer0, gBuffer1, gBuffer2, gBuffer3;

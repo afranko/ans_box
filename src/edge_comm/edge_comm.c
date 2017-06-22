@@ -81,9 +81,9 @@ void sendEnvironmentMessage(void)
 		    JSON_Value *arrsub_val_3 = json_value_init_object();
 		    JSON_Object *arrsub_o_3 = json_value_get_object(arrsub_val_3);
 
-		    json_object_dotset_number(arrsub_o_2, "hasValue.value", 20);
-		    json_object_dotset_string(arrsub_o_2, "uuid.value", "railTemp");
-		    json_array_append_value(arrsub_obj, arrsub_val_2);
+		    json_object_dotset_number(arrsub_o_3, "hasValue.value", 20);
+		    json_object_dotset_string(arrsub_o_3, "uuid.value", "railTemp");
+		    json_array_append_value(arrsub_obj, arrsub_val_3);
 
 		    /* Append the big array */
 		    json_array_append_value(arr_obj, arrval);
@@ -119,7 +119,7 @@ void sendEnvironmentMessage(void)
 
 }
 
-void sendMovementMessage(JSON_Value *measurement_array)
+void sendMovementMessage(uint32_t duration, JSON_Value *measurement_array)
 {
 	/* Init JSON Object */
 	JSON_Value *root_value = json_value_init_object();
@@ -159,7 +159,7 @@ void sendMovementMessage(JSON_Value *measurement_array)
 	    		JSON_Value *arrsub_val_2 = json_value_init_object();
 	    		JSON_Object *arrsub_o_2 = json_value_get_object(arrsub_val_2);
 
-	    		json_object_dotset_number(arrsub_o_2, "hasValue.value", 125); // Ez most mi a tököm?
+	    		json_object_dotset_number(arrsub_o_2, "hasValue.value", duration);
 	    		json_object_dotset_string(arrsub_o_2, "uuid.value", "duration");
 	    		json_array_append_value(arrsub_obj, arrsub_val_2);
 
