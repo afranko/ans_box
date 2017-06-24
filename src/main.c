@@ -37,15 +37,14 @@ char itoa_subbuf[5];
 uint8_t MSG_SENT = 0;
 extern GSM_MQTT MQTT;
 
-/* Notice that cont_0 and gBuffer0 are lead buffers
- * It's supposed that other buffers acts like their lead buffers
- * For example: if cont_0.head = 231 => cont_1.head = 231 (changes should end in 40 ms)
- */
-
 extern uint8_t bcounter; /*TODO Ha tudunk másra triggerelni, akkor is oké.
 pl.: RTC MQTT-n keresztül, vagy mégjobb: offset_100HZ hogy mindig legyen elég adat */
 
 extern meas_flag_block mfb;
+
+extern miniBuff serial_time_buff;
+extern uint8_t serial_time_value;
+bool timeFlag = false;
 
 int main(void)
 {
@@ -53,6 +52,7 @@ int main(void)
 	/* Initialization */
 	init_settings();
 	init_meas_flag_block(&mfb);
+	timeFlag = true;
 
 	/* Init circular buffers */
 	init_cBuff(&cont_0);
@@ -127,7 +127,7 @@ int main(void)
 				{
 
 					sendMovementMessage(mfb.duration ,value_array);
-					sendEnvironmentMessage();
+					//sendEnvironmentMessage();
 
 					mfb.MSG_FLAG = false;
 					MSG_SENT = 1;
@@ -153,7 +153,15 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
 	if(huart->Instance == USART3)
 	{
-		serialGet();
+		if(timeFlag == true)
+		{
+			serialGet();
+		}
+		else
+		{
+			push_miniBuff(&serial_time_buff, serial_time_value);
+			HAL_UART_Receive_IT(&huart3, &serial_time_value, 1);
+		}
 	}
 }
 

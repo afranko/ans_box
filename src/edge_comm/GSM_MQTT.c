@@ -148,7 +148,7 @@ void serialWrite(GSM_MQTT *object, char *string)
 		s_buffer[i] = (uint8_t)string[i];
 	}
 	HAL_UART_Transmit(object->gsm_uart, s_buffer, sizeof(s_buffer), HAL_MAX_DELAY);*/
-	HAL_UART_Transmit(object->gsm_uart, string, sizeof(string), HAL_MAX_DELAY); //TODO
+	HAL_UART_Transmit(object->gsm_uart, string, strlen(string), HAL_MAX_DELAY); //TODO
 }
 
 /* Logging function - you can write your code below to log */
@@ -1009,5 +1009,54 @@ void serialEvent()
         //softLogLn(inChar);
       }
     }
+}
+
+
+/* ----------------------- MiniBuff ----------------------- */
+
+void init_miniBuff(miniBuff *m_buff)
+{
+	m_buff->head = 0;
+	m_buff->tail = 0;
+}
+
+miniBuff_State push_miniBuff(miniBuff *m_buff, uint8_t data)
+{
+	uint16_t next = (m_buff->head+1) % 256;
+
+	/* Check if we had enough place */
+	if(next == m_buff->tail)
+	{
+		return miniBuff_FULL;
+	}
+
+	/* Write to the buffer */
+	m_buff->buffer[m_buff->head] = data;
+	m_buff->head = next;
+	return miniBuff_OK;
+}
+
+miniBuff_State pop_miniBuff(miniBuff *m_buff, uint8_t *data)
+{
+	/* Check if we have data to read */
+	if(m_buff->tail == m_buff->head)
+	{
+		return miniBuff_EMPTY;
+	}
+
+	/* Read data from buffer */
+	*data = m_buff->buffer[m_buff->tail];
+	m_buff-> tail = (m_buff->tail+1) % 256;
+	return miniBuff_OK;
+}
+
+miniBuff_State flush_miniBuff(miniBuff *m_buff)
+{
+	init_miniBuff(m_buff);
+	for(int i = 0; i < 256; i++)
+	{
+		m_buff->buffer[i] = 0;
+	}
+	return miniBuff_OK;
 }
 

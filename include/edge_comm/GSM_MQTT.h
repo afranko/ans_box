@@ -1,8 +1,7 @@
 /*
   MQTT.h - Library for GSM MQTT Client.
-  Created by Nithin K. Kurian, Dhanish Vijayan, Elementz Engineers Guild Pvt. Ltd, July 2, 2016.
+  Original library created by Nithin K. Kurian, Dhanish Vijayan, Elementz Engineers Guild Pvt. Ltd, July 2, 2016.
   Released into the public domain.
-  Modified to STM32 by Attila. E. Franko
 */
 
 #include <stdio.h>
@@ -63,9 +62,31 @@ typedef struct serial_buff_t{
 	int buffer_length;
 	int buffer_head;
 	int buffer_tail;
-	volatile uint8_t buffer_t[UART_BUFFER_LENGTH];
-	volatile uint8_t temp_val;
+	uint8_t buffer_t[UART_BUFFER_LENGTH];
+	uint8_t temp_val;
 }serialBuff;
+
+/* ---------------------- MiniBuffer ---------------------- */
+
+typedef struct low_sized_buffer_t{
+	uint8_t head;
+	uint8_t tail;
+	uint8_t buffer[256];
+}miniBuff;
+
+typedef enum
+{
+	miniBuff_FULL	= -1,
+	miniBuff_OK	= 0,
+	miniBuff_EMPTY	= 1
+}miniBuff_State;
+
+void init_miniBuff(miniBuff *buff_c);
+miniBuff_State push_miniBuff(miniBuff *m_buff, uint8_t data);
+miniBuff_State pop_miniBuff(miniBuff *m_buff, uint8_t *data);
+miniBuff_State flush_miniBuff(miniBuff *m_buff);
+
+/* --------------------------------------------------------- */
 
 typedef struct gsm_mqtt_t{
 	volatile bool TCP_Flag;

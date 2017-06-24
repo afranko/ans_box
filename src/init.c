@@ -12,6 +12,9 @@ FIL CONFIG_F;
 
 InitStateCode config_status;
 
+miniBuff serial_time_buff;
+uint8_t serial_time_value;
+
 void init_settings()
 {
 	  HAL_Init();
@@ -19,7 +22,7 @@ void init_settings()
 	  MX_GPIO_Init();
 	  MX_ADC3_Init();
 	  MX_I2C2_Init();
-	  //MX_RTC_Init(); //TODO
+	  MX_RTC_Init();
 	  MX_SDIO_SD_Init();
 	  MX_TIM2_Init();
 	  MX_TIM4_Init();
@@ -28,6 +31,14 @@ void init_settings()
 
 	  /* Load default settings from SD */
 	  load_config_sd();
+
+	  /* Check if RTC is set */
+	  checkRTC();
+
+	  if(config_status == RTC_NOT_SET)
+	  {
+	  	  setRTC();
+	  }
 
 	  if(config_status != INIT_OK)
 	  {
@@ -52,9 +63,9 @@ void SystemClock_Config(void)
 
     /**Initializes the CPU, AHB and APB busses clocks
     */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;//|RCC_OSCILLATORTYPE_LSE;
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE|RCC_OSCILLATORTYPE_LSE;
   RCC_OscInitStruct.HSEState = RCC_HSE_ON;
-  //RCC_OscInitStruct.LSEState = RCC_LSE_ON;
+  RCC_OscInitStruct.LSEState = RCC_LSE_ON;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
   RCC_OscInitStruct.PLL.PLLM = 12;
@@ -451,4 +462,378 @@ void load_config_sd()
 
 	f_close(&CONFIG_F);
 	f_mount(NULL, "", 1);
+}
+
+void checkRTC(void)
+{
+	RTC_TimeTypeDef time;
+	RTC_DateTypeDef date;
+	HAL_RTC_GetTime(&hrtc, &time, RTC_FORMAT_BIN);
+	HAL_RTC_GetDate(&hrtc, &date, RTC_FORMAT_BIN);
+	if(date.Year < 17)
+	{
+		config_status = RTC_NOT_SET;
+	}
+	return;
+}
+
+void setRTC(void)
+{
+	char s_prov[] = "AT+CSTT=\"internet.telekom\"\r\n";
+	char  s_string[] = "AT+CIPSTART=\"TCP\",\"www.bme.hu\",\"80\"\r\n";
+	char http_head_msg[] = "HEAD /lab01/ HTTP/1.1\r\n" "Host: bme.hu\r\n";
+	char buff_str[256];
+	uint8_t p_buffs  = 0, p_butt = 0;
+	char setter_str[26];
+	uint32_t the_tick = 0;
+	RTC_TimeTypeDef time;
+	RTC_DateTypeDef date;
+	char univ_str[3];
+
+	init_miniBuff(&serial_time_buff);
+	HAL_UART_Receive_IT(&huart3, &serial_time_value, 1);
+
+	HAL_UART_Transmit(&huart3, "AT\r\n", strlen("AT\r\n"), HAL_MAX_DELAY);
+	if(check_string("") != true)
+	{
+		return;
+	}
+
+	HAL_UART_Transmit(&huart3, "AT\r\n", strlen("AT\r\n"), HAL_MAX_DELAY);
+	if(check_string("") != true)
+	{
+		return;
+	}
+
+	HAL_UART_Transmit(&huart3, "ATE1\r\n", strlen("ATE0\r\n"), HAL_MAX_DELAY);
+	if(check_string("") != true)
+	{
+		return;
+	}
+
+
+	HAL_UART_Transmit(&huart3, "AT+CREG?\r\n", strlen("AT+CREG?\r\n"), HAL_MAX_DELAY);
+
+	HAL_UART_Transmit(&huart3, "AT+CIPMUX=0\r\n", strlen("AT+CIPMUX=0\r\n"), HAL_MAX_DELAY);
+	if(check_string("") != true)
+	{
+		return;
+	}
+
+	HAL_UART_Transmit(&huart3, "AT+CIPMODE=1\r\n", strlen("AT+CIPMODE=1\r\n"), HAL_MAX_DELAY);
+	if(check_string("") != true)
+	{
+		return;
+	}
+
+	HAL_UART_Transmit(&huart3, "AT+CGATT=1\r\n", strlen("AT+CGATT=1\r\n"), HAL_MAX_DELAY);
+	if(check_string("") != true)
+	{
+		return;
+	}
+
+	HAL_UART_Transmit(&huart3, "AT+CIPSTATUS\r\n", strlen("AT+CIPSTATUS\r\n"), HAL_MAX_DELAY);
+
+
+	HAL_UART_Transmit(&huart3, s_prov, strlen(s_prov), HAL_MAX_DELAY);
+	if(check_string("") != true)
+	{
+		return;
+	}
+
+	HAL_UART_Transmit(&huart3, "AT+CIICR\r\n", strlen("AT+CIICR\r\n"), HAL_MAX_DELAY);
+	if(check_string("") != true)
+	{
+		return;
+	}
+
+	HAL_UART_Transmit(&huart3, "AT+CIFSR\r\n", strlen("AT+CIFSR\r\n"), HAL_MAX_DELAY);
+	if(check_string("") != true)
+	{
+		return;
+	}
+
+
+	HAL_UART_Transmit(&huart3, s_string, strlen(s_string), HAL_MAX_DELAY);
+	if(check_string("CONNECT") != true)
+	{
+		return;
+	}
+/*
+	HAL_UART_Transmit(&huart3, "AT+SAPBR=3,1,\"CONTYPE\",\"GPRS\"\r\n", strlen("AT+SAPBR=3,1,\"CONTYPE\",\"GPRS\"\r\n"), HAL_MAX_DELAY);
+	if(check_string("") != true)
+	{
+		return;
+	}
+
+	HAL_UART_Transmit(&huart3, "AT+SAPBR=3,1,\"APN\",\"internet.telekom\"\r\n", strlen("AT+SAPBR=3,1,\"APN\",\"internet.telekom\"\r\n"), HAL_MAX_DELAY);
+	if(check_string("") != true)
+	{
+		return;
+	}
+
+	HAL_UART_Transmit(&huart3, "AT+SAPBR=1,1\r\n", strlen("AT+SAPBR=2,1\r\n"), HAL_MAX_DELAY);
+	if(check_string("") != true)
+	{
+		return;
+	}
+
+	HAL_UART_Transmit(&huart3, "AT+HTTPINIT\r\n", strlen("AT+HTTPINIT\r\n"), HAL_MAX_DELAY);
+	if(check_string("") != true)
+	{
+		return;
+	}
+
+	HAL_UART_Transmit(&huart3, "AT+HTTPPARA=\"CID\",1\r\n", strlen("AT+HTTPPARA=\"CID\",1\r\n"), HAL_MAX_DELAY);
+	if(check_string("") != true)
+	{
+		return;
+	}
+
+	HAL_UART_Transmit(&huart3, "AT+HTTPPARA=\"URL\",\"www.google.com\"\r\n", strlen("AT+HTTPPARA=\"URL\",\"www.google.com\"\r\n"), HAL_MAX_DELAY);
+	if(check_string("") != true)
+	{
+		return;
+	}
+
+	HAL_UART_Transmit(&huart3, "AT+HTTPACTION=0\r\n", strlen("AT+HTTPACTION=0\r\n"), HAL_MAX_DELAY);
+
+	if(check_string("") != true)
+	{
+		return;
+	}
+
+	uint32_t tick_tt = HAL_GetTick();
+	while((HAL_GetTick() - tick_tt) < 5000);
+
+	HAL_UART_Transmit(&huart3, "AT+HTTPHEAD\r\n", strlen("AT+HTTPHEAD\r\n"), HAL_MAX_DELAY);
+	if(check_string("") != true)
+	{
+		return;
+	}
+	HAL_UART_Transmit(&huart3, "AT+HTTPTERM\r\n", strlen("AT+HTTPTERM\r\n"), HAL_MAX_DELAY);
+	if(check_string("") != true)
+	{
+		return;
+	}
+
+	*/
+
+	HAL_UART_Transmit(&huart3, http_head_msg, strlen(http_head_msg), HAL_MAX_DELAY);
+	the_tick = HAL_GetTick();
+	while((HAL_GetTick() - the_tick) < 30000);
+
+	HAL_RTC_GetTime(&hrtc, &time, RTC_FORMAT_BIN);
+	HAL_RTC_GetDate(&hrtc, &date, RTC_FORMAT_BIN);
+
+	while(pop_miniBuff(&serial_time_buff,  &(buff_str[p_buffs])) != miniBuff_EMPTY)
+	{
+		p_buffs++;
+	}
+	char *point_s = strstr(buff_str, "Date: ");
+	for(p_buffs = 0, p_butt = 6; p_buffs < 26; p_buffs++, p_butt++)
+	{
+		setter_str[p_buffs] = point_s[p_butt];
+	}
+
+	switch(setter_str[1])
+	{
+	case 'o':
+		date.WeekDay = RTC_WEEKDAY_MONDAY;
+		break;
+	case 'u':
+		if(setter_str[0] == 'T')
+		{
+			date.WeekDay = RTC_WEEKDAY_TUESDAY;
+		}
+		else
+		{
+			date.WeekDay = RTC_WEEKDAY_SUNDAY;
+		}
+		break;
+	case 'e':
+		date.WeekDay = RTC_WEEKDAY_WEDNESDAY;
+		break;
+	case 'h':
+		date.WeekDay = RTC_WEEKDAY_THURSDAY;
+		break;
+	case 'r':
+		date.WeekDay = RTC_WEEKDAY_FRIDAY;
+		break;
+	case 'a':
+		date.WeekDay = RTC_WEEKDAY_SATURDAY;
+		break;
+	}
+
+	univ_str[0] = setter_str[5];
+	univ_str[1] = setter_str[6];
+	date.Date = atoi(univ_str);
+
+	switch(setter_str[8])
+	{
+	case 'J':
+		if(setter_str[9] == 'u')
+		{
+			if(setter_str[10] == 'n')
+			{
+				date.Month = RTC_MONTH_JUNE;
+			}
+			else
+			{
+				date.Month = RTC_MONTH_JULY;
+			}
+		}
+		else
+		{
+			date.Month = RTC_MONTH_JANUARY;
+		}
+		break;
+	case 'F':
+		date.Month = RTC_MONTH_FEBRUARY;
+		break;
+	case 'M':
+		if(setter_str[10] == 'r')
+		{
+			date.Month = RTC_MONTH_MARCH;
+		}
+		else
+		{
+			date.Month = RTC_MONTH_MAY;
+		}
+		break;
+	case 'A':
+		if(setter_str[9] == 'p')
+		{
+			date.Month = RTC_MONTH_APRIL;
+		}
+		else
+		{
+			date.Month = RTC_MONTH_AUGUST;
+		}
+		break;
+	case 'S':
+		date.Month = RTC_MONTH_SEPTEMBER;
+		break;
+	case 'O':
+		date.Month = RTC_MONTH_OCTOBER;
+		break;
+	case 'N':
+		date.Month = RTC_MONTH_NOVEMBER;
+		break;
+	case 'D':
+		date.Month = RTC_MONTH_DECEMBER;
+		break;
+	}
+
+	univ_str[0] = setter_str[14];
+	univ_str[1] = setter_str[15];
+	date.Year = atoi(univ_str);
+
+	univ_str[0] = setter_str[17];
+	univ_str[1] = setter_str[18];
+	time.Hours = atoi(univ_str);
+
+	univ_str[0] = setter_str[20];
+	univ_str[1] = setter_str[21];
+	time.Minutes = atoi(univ_str);
+
+	univ_str[0] = setter_str[23];
+	univ_str[1] = setter_str[24];
+	time.Seconds = atoi(univ_str);
+
+	if(time.Hours > 21)
+	{
+		time.Hours = (time.Hours+2)%24;
+		if(date.Month == 1 || date.Month == 3 || date.Month == 5 || date.Month == 7 ||
+				date.Month == 8 || date.Month == 10 || date.Month == 12)
+		{
+			date.Date = (date.Date+1) % 32;
+		}
+		if(date.Month == 4 || date.Month == 6 || date.Month == 9 || date.Month == 11)
+		{
+			date.Date = (date.Date+1) % 31;
+		}
+		if(date.Month == 2)
+		{
+			if((date.Year%4) == 0)
+			{
+				date.Date = (date.Date+1) % 30;
+			}
+			else
+			{
+				date.Date = (date.Date+1) % 29;
+			}
+		}
+
+		if(date.Date == 0)
+		{
+			date.Date++;
+		}
+
+		if(date.Date == 1)
+		{
+			date.Month = (date.Month+1)%13;
+		}
+
+		if(date.Month == 0)
+		{
+			date.Month++;
+		}
+
+		date.WeekDay = (date.WeekDay+1)%8;
+
+		if(date.WeekDay == 0)
+		{
+			date.WeekDay++;
+		}
+
+		if((date.Month == 1) && (date.Date == 1))
+		{
+			date.Year++;
+		}
+	}
+	else
+	{
+		time.Hours = time.Hours+2;
+	}
+
+	time.DayLightSaving = RTC_DAYLIGHTSAVING_NONE;
+	time.StoreOperation = RTC_STOREOPERATION_RESET;
+
+	HAL_RTC_SetDate(&hrtc, &date, RTC_FORMAT_BIN);
+    HAL_RTC_SetTime(&hrtc, &time, RTC_FORMAT_BIN);
+
+	//TODO GMT idő lesz beállítva - később kell korrigálni
+
+	config_status = INIT_OK;
+	return;
+
+
+
+}
+
+bool check_string(char *reply)
+{
+	char tim_ser_str[256];
+	uint8_t serial_head = 0;
+	uint32_t tick_t = 0;
+	tick_t = HAL_GetTick();
+	while((HAL_GetTick() - tick_t) < 5000) //TODO, 10,5k?
+	{
+		uint8_t c_data;
+		if(pop_miniBuff(&serial_time_buff, &c_data) != miniBuff_EMPTY)
+		{
+			if(c_data != 0)
+			{
+				tim_ser_str[serial_head] = c_data;
+				serial_head++;
+			}
+		}
+	}
+
+	if(strstr(tim_ser_str, reply) != NULL)
+	{
+		return true;
+	}
+	return false;
 }

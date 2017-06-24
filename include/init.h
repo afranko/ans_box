@@ -12,12 +12,11 @@ typedef struct settings_t
 	uint16_t meas_timeout; 		// [ms] - 2 byte should be enough - max. 65 sec
 	uint16_t meas_offset;		// [ms]
 	uint16_t env_meas_freq;		// [s]
-	//uint32_t meas_loc_id;		// 1 byte, 2 byte, 4 byte?
 	char mqtt_host[50];
 	char port[5];
 	char gsm_apn[30];
 	uint8_t ping_retry;
-	char client_name[20];
+	char client_name[21];
 }Settings_HandleTypeDef;
 
 typedef enum{
@@ -31,7 +30,8 @@ typedef enum{
 	HAL_TIM_ERROR			= 7,
 	CONFIG_READ_ERROR		= 8,
 	NO_CONFIG_ERROR			= 9,
-	INVALID_SETTINGS_ERROR 	= 10
+	INVALID_SETTINGS_ERROR 	= 10,
+	RTC_NOT_SET				= 11
 }InitStateCode;
 
 extern Settings_HandleTypeDef config_s;
@@ -47,10 +47,15 @@ extern TIM_HandleTypeDef htim4;
 
 extern UART_HandleTypeDef huart3;
 
-void init_settings();
-void restart_init();
-void load_config_sd();
-void config_error();
+void init_settings(void);
+void restart_init(void);
+void load_config_sd(void);
+void config_error(void);
+
+void setRTC(void);
+void checkRTC(void);
+void getSerialTime(void);
+bool check_string(char *reply);
 
 void SystemClock_Config(void);
 void MX_GPIO_Init(void);

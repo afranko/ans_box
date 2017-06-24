@@ -10,7 +10,7 @@
 #ifndef EDGEDIV_COMM_H_
 #define EDGEDIV_COMM_H_
 
-#include <edge_comm/parson.h>
+#include "edge_comm/parson.h"
 #include <string.h>
 #include <stdlib.h>
 #include "stm32f4xx_hal.h"
