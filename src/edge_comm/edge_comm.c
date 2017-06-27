@@ -33,7 +33,7 @@ void CommInit(UART_HandleTypeDef *huart, unsigned long KeepAlive)
  *
  */
 
-void sendEnvironmentMessage(void)
+void sendEnvironmentMessage(char *meas_loc, char* timeStamp)
 {
 	/* Init JSON Object */
 	JSON_Value *root_value = json_value_init_object();
@@ -93,14 +93,14 @@ void sendEnvironmentMessage(void)
 
 		    JSON_Value *loc2val = json_value_init_object();
 		    JSON_Object *loc2 = json_value_get_object(loc2val);
-		    json_object_set_string(loc2, "value", "-5578414850104292502");
+		    json_object_set_string(loc2, "value", meas_loc);
 		    json_object_dotset_value(root_object, "hasLocation.measLocId", loc2val);
 
 		    JSON_Value *times2val = json_value_init_object();
 		    JSON_Object *times2 = json_value_get_object(times2val);
 
 		    json_object_set_string(times2, "format", "DATETIME");
-		    json_object_set_string(times2, "value", "2017.06.21.12:58:27");
+		    json_object_set_string(times2, "value", timeStamp);
 
 		    json_object_dotset_value(root_object, "hasTimestamp.hasUTCDateTime", times2val);
 
@@ -119,7 +119,7 @@ void sendEnvironmentMessage(void)
 
 }
 
-void sendMovementMessage(uint32_t duration, JSON_Value *measurement_array)
+void sendMovementMessage(uint32_t duration, char *meas_loc, char* timeStamp, JSON_Value *measurement_array)
 {
 	/* Init JSON Object */
 	JSON_Value *root_value = json_value_init_object();
@@ -167,18 +167,18 @@ void sendMovementMessage(uint32_t duration, JSON_Value *measurement_array)
 	    json_array_append_value(arr_obj, arrval);
 
 	    /* Remaining pairs */
-	    json_object_dotset_string(root_object, "hasEventDescriptionUuid.value", "5392");
+	    json_object_dotset_string(root_object, "hasEventDescriptionUuid.value", "5392"); //TODO - frimware const str
 
 	    JSON_Value *loc2val = json_value_init_object();
 	    JSON_Object *loc2 = json_value_get_object(loc2val);
-	    json_object_set_string(loc2, "value", "-7482202863293359861");
+	    json_object_set_string(loc2, "value", meas_loc);
 	    json_object_dotset_value(root_object, "hasLocation.measLocId", loc2val);
 
 	    JSON_Value *times2val = json_value_init_object();
 	    JSON_Object *times2 = json_value_get_object(times2val);
 
 	    json_object_set_string(times2, "format", "DATETIME");
-	    json_object_set_string(times2, "value", "2017.04.19.9:45:12");
+	    json_object_set_string(times2, "value", timeStamp);
 
 	    json_object_dotset_value(root_object, "hasTimestamp.hasUTCDateTime", times2val);
 

@@ -31,7 +31,9 @@ typedef enum{
 	CONFIG_READ_ERROR		= 8,
 	NO_CONFIG_ERROR			= 9,
 	INVALID_SETTINGS_ERROR 	= 10,
-	RTC_NOT_SET				= 11
+	RTC_NOT_SET				= 11,
+	CONFIG_WRITE_ERROR		= 12,
+	CONFIG_CLOSE_ERROR		= 13
 }InitStateCode;
 
 extern Settings_HandleTypeDef config_s;

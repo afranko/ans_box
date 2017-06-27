@@ -61,7 +61,7 @@ uint16_t read_last(cBuff *buff_c)
 void meas_datamove(void)
 {
 
-	if(mfb.CLEAR_FLAG == true) //TODO timeout esetén van üzenet?
+	if(mfb.CLEAR_FLAG == true) //TODO timeout esetén van üzenet? - WARNING MESSAGE
 	{
 		init_meas_flag_block(&mfb);
 		flush_cBuff(&gBuffer0);
@@ -299,5 +299,72 @@ void intoa_conv(uint16_t data, char *ibuffer)
 
 	strcat(ibuffer, s_buf);
 	ibuffer[4] = 0;
+	return;
+}
+
+void getTimeStamp(RTC_HandleTypeDef *hrtc, char *TimeString)
+{
+	char TiSt[20], uncon[3];
+	RTC_DateTypeDef date;
+	RTC_TimeTypeDef time;
+
+	HAL_RTC_GetTime(hrtc, &time, RTC_FORMAT_BIN);
+	HAL_RTC_GetDate(hrtc, &date, RTC_FORMAT_BIN);
+
+	strcpy(TiSt, "20");
+
+	itoa(date.Year, uncon, 10);
+	strcat(TiSt, uncon);
+
+	strcat(TiSt, ".");
+
+	itoa(date.Month, uncon, 10);
+	if((date.Month / 10) == 0)
+	{
+		uncon[1] = uncon[0];
+		uncon[0] = '0';
+	}
+	strcat(TiSt, uncon);
+
+	strcat(TiSt, ".");
+
+	itoa(date.Date, uncon, 10);
+	if((date.Date / 10) == 0)
+	{
+		uncon[1] = uncon[0];
+		uncon[0] = '0';
+	}
+	strcat(TiSt, uncon);
+
+	strcat(TiSt, ".");
+
+	itoa(time.Hours, uncon, 10);
+	if((time.Hours / 10) == 0)
+	{
+		uncon[1] = uncon[0];
+		uncon[0] = '0';
+	}
+	strcat(TiSt, uncon);
+
+	strcat(TiSt, ":");
+
+	itoa(time.Minutes, uncon, 10);
+	if((time.Minutes / 10) == 0)
+	{
+		uncon[1] = uncon[0];
+		uncon[0] = '0';
+	}
+	strcat(TiSt, uncon);
+
+	strcat(TiSt, ":");
+
+	itoa(time.Seconds, uncon, 10);
+	if((time.Seconds / 10) == 0)
+	{
+		uncon[1] = uncon[0];
+		uncon[0] = '0';
+	}
+	strcat(TiSt, uncon);
+	strcpy(TimeString, TiSt);
 	return;
 }

@@ -56,7 +56,7 @@ void AutoConnect(GSM_MQTT *object)
 void OnConnect(GSM_MQTT *object)
 {
 	publish(object, 0, 0, 1, _generateMessageID(object), "/welcome", "HELLO ANSALDO!");
-	//TODO
+	//TODO - measlocid
 
 }
 
@@ -140,7 +140,7 @@ void serialPrint(GSM_MQTT *object, char value)
 /* Use when you want to send a char string */
 void serialWrite(GSM_MQTT *object, char *string)
 {
-	/*
+/*
 	int string_length = strlen(string);
 	uint8_t s_buffer[string_length];
 	for(int i = 0; i < string_length; i++)

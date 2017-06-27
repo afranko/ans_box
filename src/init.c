@@ -245,13 +245,13 @@ void MX_TIM2_Init(void)
 	  config_status = HAL_TIM_ERROR;
   }
 
-  sMasterConfig.MasterOutputTrigger = TIM_TRGO_UPDATE; //TIM_TRGO_RESET todo
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_UPDATE;
   sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
   if (HAL_TIMEx_MasterConfigSynchronization(&htim2, &sMasterConfig) != HAL_OK)
   {
 	  config_status = HAL_TIM_ERROR;
   }
-  if (HAL_TIM_Base_Start(&htim2) != HAL_OK) //TODO IT?
+  if (HAL_TIM_Base_Start(&htim2) != HAL_OK)
   {
 	  config_status = HAL_TIM_ERROR;
   }
@@ -287,10 +287,10 @@ void MX_TIM4_Init(void)
   {
 	  config_status = HAL_TIM_ERROR;
   }
-  /*if (HAL_TIM_Base_Start_IT(&htim4) != HAL_OK) //TODO IT??
+  if (HAL_TIM_Base_Start_IT(&htim4) != HAL_OK)
   {
 	  config_status = HAL_TIM_ERROR;
-  }*/
+  }
 
 }
 
@@ -300,7 +300,7 @@ void MX_USART3_UART_Init(void)
   __GPIOB_CLK_ENABLE();
   __USART3_CLK_ENABLE();
   huart3.Instance = USART3;
-  huart3.Init.BaudRate = 115200; //TODO overrun
+  huart3.Init.BaudRate = 115200;
   huart3.Init.WordLength = UART_WORDLENGTH_8B;
   huart3.Init.StopBits = UART_STOPBITS_1;
   huart3.Init.Parity = UART_PARITY_NONE;
@@ -349,12 +349,7 @@ void restart_init()
 		HAL_Delay(500);
 	}
 
-	/* Waiting for SD change and manual reset */
-	if(config_status == NO_CONFIG_ERROR) //TODO
-	{ //nagyon TODO,nem csak no_config, hanem amire értelmes
-		HAL_GPIO_WritePin(GPIOC,GPIO_PIN_13, GPIO_PIN_RESET);
-		while(1);
-	}
+	//TODO villogáskódok??
 
 	HAL_NVIC_SystemReset();
 }
@@ -364,24 +359,36 @@ void write_default_cfgfile()
 	JSON_Value *default_conf_value = json_value_init_object();
 	JSON_Object *default_conf_object = json_value_get_object(default_conf_value);
 
-	json_object_set_number(default_conf_object, "threshold_min", 0);
-	json_object_set_number(default_conf_object, "threshold_max", 4095);
-	json_object_set_number(default_conf_object, "meas_timeout", 1000);
+	json_object_set_number(default_conf_object, "threshold_min", 500);
+	json_object_set_number(default_conf_object, "threshold_max", 3800);
+	json_object_set_number(default_conf_object, "meas_timeout", 10000);
 	json_object_set_number(default_conf_object, "meas_offset", 1000);
-	json_object_set_number(default_conf_object, "env_meas_freq", 100);
-	json_object_set_string(default_conf_object, "mqtt_host", "mqtthost.name");
-	json_object_set_string(default_conf_object, "port", "1883");
-	json_object_set_string(default_conf_object, "gsm_apn", "provider.apn");
-	json_object_set_number(default_conf_object, "ping_retry", 2);
-	json_object_set_string(default_conf_object, "client_name", "unique_identifier");
+	json_object_set_number(default_conf_object, "env_meas_freq", 1800);
+	json_object_set_string(default_conf_object, "mqtt_host", "mantis1.tmit.bme.hu");
+	json_object_set_string(default_conf_object, "port", "80");
+	json_object_set_string(default_conf_object, "gsm_apn", "internet.telekom");
+	json_object_set_number(default_conf_object, "ping_retry", 3);
+	json_object_set_string(default_conf_object, "client_name", "ANS_MEAS_BOX_0000001");
 
 	char *serialized_string = NULL;
 	serialized_string = json_serialize_to_string_pretty(default_conf_value);
 
 	UINT backp;
 	UINT siz = (UINT)strlen(serialized_string);
-	f_open(&CONFIG_F, "config.json", FA_CREATE_NEW | FA_WRITE);
-	f_write(&CONFIG_F, serialized_string, siz, &backp);
+
+	if(f_open(&CONFIG_F, "config.json", FA_CREATE_NEW | FA_WRITE) != FR_OK)
+	{
+		config_status = CONFIG_WRITE_ERROR;
+	}
+	else
+	{
+		f_write(&CONFIG_F, serialized_string, siz, &backp);
+		if(siz != backp)
+		{
+			config_status = CONFIG_WRITE_ERROR;
+			return;
+		}
+	}
 
 	json_free_serialized_string(serialized_string);
 	json_value_free(default_conf_value);
@@ -392,7 +399,7 @@ void load_config_sd()
 	FRESULT f_res;
 
 	/* Mount SD */
-	if(f_mount(&FS, "SD1", 1) != FR_OK) //TODO default drive-e?
+	if(f_mount(&FS, "SD1", 1) != FR_OK)
 	{
 		config_status = INIT_SD_ERROR;
 		return;
@@ -404,6 +411,7 @@ void load_config_sd()
 	if((f_res != FR_OK ) && (f_res != FR_NO_FILE))
 	{
 		config_status = CONFIG_READ_ERROR;
+		return;
 	}
 
 	/* SD is OK, but there isn't any config file */
@@ -427,7 +435,8 @@ void load_config_sd()
 
 				if (lnpoint != chpoint)
 				{
-					//TODO na ide kell valamit kitalálni
+					config_status = CONFIG_READ_ERROR;
+					return;
 				}
 
 				JSON_Value *conf_setup = json_parse_string(in_buff);
@@ -451,8 +460,6 @@ void load_config_sd()
 				strcpy(config_s.client_name, client_name_p);
 
 				json_value_free(conf_setup);
-
-				//checkup();	//TODO
 			}
 			else
 			{
@@ -460,8 +467,15 @@ void load_config_sd()
 			}
 		}
 
-	f_close(&CONFIG_F);
-	f_mount(NULL, "", 1);
+	if(f_close(&CONFIG_F) != FR_OK)
+	{
+		config_status = CONFIG_CLOSE_ERROR;
+	}
+
+	if(f_mount(NULL, "SD1", 1) != FR_OK)
+	{
+		config_status = CONFIG_CLOSE_ERROR;
+	}
 }
 
 void checkRTC(void)
@@ -479,9 +493,9 @@ void checkRTC(void)
 
 void setRTC(void)
 {
-	char s_prov[] = "AT+CSTT=\"internet.telekom\"\r\n";
 	char  s_string[] = "AT+CIPSTART=\"TCP\",\"www.bme.hu\",\"80\"\r\n";
 	char http_head_msg[] = "HEAD /lab01/ HTTP/1.1\r\n" "Host: bme.hu\r\n";
+	char s_prov[100];
 	char buff_str[256];
 	uint8_t p_buffs  = 0, p_butt = 0;
 	char setter_str[26];
@@ -489,6 +503,10 @@ void setRTC(void)
 	RTC_TimeTypeDef time;
 	RTC_DateTypeDef date;
 	char univ_str[3];
+
+	strcpy(s_prov, "AT+CSTT=\"");
+	strcat(s_prov, config_s.gsm_apn);
+	strcat(s_prov, "\"\r\n");
 
 	init_miniBuff(&serial_time_buff);
 	HAL_UART_Receive_IT(&huart3, &serial_time_value, 1);
@@ -559,65 +577,6 @@ void setRTC(void)
 	{
 		return;
 	}
-/*
-	HAL_UART_Transmit(&huart3, "AT+SAPBR=3,1,\"CONTYPE\",\"GPRS\"\r\n", strlen("AT+SAPBR=3,1,\"CONTYPE\",\"GPRS\"\r\n"), HAL_MAX_DELAY);
-	if(check_string("") != true)
-	{
-		return;
-	}
-
-	HAL_UART_Transmit(&huart3, "AT+SAPBR=3,1,\"APN\",\"internet.telekom\"\r\n", strlen("AT+SAPBR=3,1,\"APN\",\"internet.telekom\"\r\n"), HAL_MAX_DELAY);
-	if(check_string("") != true)
-	{
-		return;
-	}
-
-	HAL_UART_Transmit(&huart3, "AT+SAPBR=1,1\r\n", strlen("AT+SAPBR=2,1\r\n"), HAL_MAX_DELAY);
-	if(check_string("") != true)
-	{
-		return;
-	}
-
-	HAL_UART_Transmit(&huart3, "AT+HTTPINIT\r\n", strlen("AT+HTTPINIT\r\n"), HAL_MAX_DELAY);
-	if(check_string("") != true)
-	{
-		return;
-	}
-
-	HAL_UART_Transmit(&huart3, "AT+HTTPPARA=\"CID\",1\r\n", strlen("AT+HTTPPARA=\"CID\",1\r\n"), HAL_MAX_DELAY);
-	if(check_string("") != true)
-	{
-		return;
-	}
-
-	HAL_UART_Transmit(&huart3, "AT+HTTPPARA=\"URL\",\"www.google.com\"\r\n", strlen("AT+HTTPPARA=\"URL\",\"www.google.com\"\r\n"), HAL_MAX_DELAY);
-	if(check_string("") != true)
-	{
-		return;
-	}
-
-	HAL_UART_Transmit(&huart3, "AT+HTTPACTION=0\r\n", strlen("AT+HTTPACTION=0\r\n"), HAL_MAX_DELAY);
-
-	if(check_string("") != true)
-	{
-		return;
-	}
-
-	uint32_t tick_tt = HAL_GetTick();
-	while((HAL_GetTick() - tick_tt) < 5000);
-
-	HAL_UART_Transmit(&huart3, "AT+HTTPHEAD\r\n", strlen("AT+HTTPHEAD\r\n"), HAL_MAX_DELAY);
-	if(check_string("") != true)
-	{
-		return;
-	}
-	HAL_UART_Transmit(&huart3, "AT+HTTPTERM\r\n", strlen("AT+HTTPTERM\r\n"), HAL_MAX_DELAY);
-	if(check_string("") != true)
-	{
-		return;
-	}
-
-	*/
 
 	HAL_UART_Transmit(&huart3, http_head_msg, strlen(http_head_msg), HAL_MAX_DELAY);
 	the_tick = HAL_GetTick();
@@ -803,13 +762,8 @@ void setRTC(void)
 	HAL_RTC_SetDate(&hrtc, &date, RTC_FORMAT_BIN);
     HAL_RTC_SetTime(&hrtc, &time, RTC_FORMAT_BIN);
 
-	//TODO GMT idő lesz beállítva - később kell korrigálni
-
 	config_status = INIT_OK;
 	return;
-
-
-
 }
 
 bool check_string(char *reply)

@@ -14,12 +14,12 @@
 
 #define	GOVERFLOW	1
 
-#define BUFFER_SIZE		2048 //TODO elég lesz-e a nagy bufferhez is??? nem, határozottan nem vagy de
+#define BUFFER_SIZE		2048
 
 /* 1 buffer = 4kByte (1 place = 2 Byte = 1 Word) =>
  * 4 buffer = 16kByte 	=>
  * But we had only 16000 Byte so we have 4*24 	=>
- * We need one byte to detect overflow 	=> 	Still Safe
+ * We need one word to detect overflow 	=> 	Still Safe
  */
 
 typedef struct c_buff_t

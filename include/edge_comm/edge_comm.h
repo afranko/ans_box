@@ -24,8 +24,8 @@ typedef struct mqtt_qos_v
 }MQTT_QoS;
 
 void CommInit(UART_HandleTypeDef *huart, unsigned long KeepAlive);
-void sendMovementMessage(uint32_t duration, JSON_Value *measurement_array); //TODO
-void sendEnvironmentMessage(void);							//TODO
+void sendMovementMessage(uint32_t duration, char *meas_loc, char* timeStamp, JSON_Value *measurement_array);
+void sendEnvironmentMessage(char *meas_loc, char* timeStamp);	//TODO
 
 void MQTTProcessing();
 void setSend(char QoS, char DUP, char RETAIN);

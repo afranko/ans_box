@@ -51,5 +51,6 @@ uint16_t read_last(cBuff *buff_c);
 void meas_datamove(void);
 void init_meas_flag_block(meas_flag_block *flagBlock);
 void intoa_conv(uint16_t data, char *ibuffer);
+void getTimeStamp(RTC_HandleTypeDef *hrtc, char *TimeString);
 
 #endif /* MEASUREMENT_H_ */

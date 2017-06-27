@@ -1,7 +1,5 @@
 
-
-
-/* Includes ------------------------------------------------------------------*/
+/* Includes ------------------------------------------------------------------ */
 #include "statemachine.h"
 
 ADC_HandleTypeDef hadc3;
@@ -17,15 +15,14 @@ UART_HandleTypeDef huart3;
 
 Settings_HandleTypeDef config_s;
 
-/*----------------------*/
-/* 		   Table 		*/
-/*----------------------*/
-/*	 cont_0		PF7 	*/
-/*	 cont_1		PF8 	*/
-/*	 cont_2		PF9 	*/
-/*	 cont_3		PF10 	*/
-/*----------------------*/
-//TODO
+/*----------------------------------*/
+/* 		   		Table	 			*/
+/*----------------------------------*/
+/*	 cont_0		gBuffer0	PF7 	*/
+/*	 cont_1		gBuffer1	PF8		*/
+/*	 cont_2		gBuffer2	PF9		*/
+/*	 cont_3		gBuffer3	PF10	*/
+/*----------------------------------*/
 
 cBuff cont_0, cont_1, cont_2, cont_3, gBuffer0, gBuffer1, gBuffer2, gBuffer3;
 
@@ -35,16 +32,15 @@ uint8_t ch_data;
 char msg_string[20];
 char itoa_subbuf[5];
 uint8_t MSG_SENT = 0;
+uint16_t env_counter = 0;
+bool timeFlag = false;
+
 extern GSM_MQTT MQTT;
-
-extern uint8_t bcounter; /*TODO Ha tudunk másra triggerelni, akkor is oké.
-pl.: RTC MQTT-n keresztül, vagy mégjobb: offset_100HZ hogy mindig legyen elég adat */
-
+extern uint8_t bcounter;
 extern meas_flag_block mfb;
-
 extern miniBuff serial_time_buff;
 extern uint8_t serial_time_value;
-bool timeFlag = false;
+
 
 int main(void)
 {
@@ -66,12 +62,12 @@ int main(void)
 
  	CommInit(&huart3, 60);
 
- 	while(MQTT.MQTT_Flag != true)
+ 	HAL_ADC_Start_IT(&hadc3);
+
+ 	while(MQTT.MQTT_Flag != true) //TODO - led égjen/vagy ne
  	{
  		MQTTProcessing();
  	}
-
-	HAL_ADC_Start_IT(&hadc3);//TODO it? HAL_ADC_Start_IT
 
 	/* Waiting for the first conversation */
 	while(bcounter == 0)
@@ -126,8 +122,9 @@ int main(void)
 				if(parse_flag == cBuff_EMPTY)
 				{
 
-					sendMovementMessage(mfb.duration ,value_array);
-					//sendEnvironmentMessage();
+					char tStamp[20];
+					getTimeStamp(&hrtc, tStamp);
+					sendMovementMessage(mfb.duration, config_s.client_name, tStamp, value_array);
 
 					mfb.MSG_FLAG = false;
 					MSG_SENT = 1;
@@ -144,9 +141,7 @@ int main(void)
 			/* Reset SENT FLAG */
 			MSG_SENT = 0;
 		}
-
 	}
-
 }
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
@@ -165,3 +160,19 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 	}
 }
 
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+	if(htim->Instance == TIM4)
+	{
+		if(env_counter == config_s.env_meas_freq)
+		{
+			//Mérés is kéne TODO
+
+			char tStamp[20];
+			getTimeStamp(&hrtc, tStamp);
+			sendEnvironmentMessage(config_s.client_name, tStamp);
+			env_counter = 0;
+		}
+		env_counter++;
+	}
+}

@@ -20,6 +20,7 @@ typedef enum
 }machine_state;
 
 extern meas_flag_block mfb;
+extern Settings_HandleTypeDef config_s;
 
 machine_state p_error(void);
 machine_state p_low(void);
