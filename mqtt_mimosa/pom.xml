@@ -16,7 +16,7 @@
 				<configuration>
 					<archive>
 						<manifest>
-							<mainClass>eu.mantis.mqtt_mimosa.MqttMain</mainClass>
+							<mainClass>eu.mantis.mqtt_mimosa.Main</mainClass>
 						</manifest>
 					</archive>
 					<descriptorRefs>

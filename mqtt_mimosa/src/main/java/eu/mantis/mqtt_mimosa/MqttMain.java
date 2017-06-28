@@ -1,5 +1,10 @@
 package eu.mantis.mqtt_mimosa;
 
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
 
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
@@ -8,31 +13,34 @@ import org.eclipse.paho.client.mqttv3.MqttClient;
 import org.eclipse.paho.client.mqttv3.MqttException;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
 
-import com.google.gson.Gson;
-
+import eu.mantis.mqtt_mimosa.mqtt_messages.BoxCommand;
 import eu.mantis.mqtt_mimosa.mqtt_messages.HasAttribute;
-import eu.mantis.mqtt_mimosa.mqtt_messages.SimpleCEPEvent;
+import eu.mantis.mqtt_mimosa.mqtt_messages.HasEventDescriptionUuid;
+import eu.mantis.mqtt_mimosa.mqtt_messages.HasTimestamp;
+import eu.mantis.mqtt_mimosa.mqtt_messages.HasUTCDateTime;
+import eu.mantis.mqtt_mimosa.mqtt_messages.HasValue;
+import eu.mantis.mqtt_mimosa.mqtt_messages.HasValueContainer;
+import eu.mantis.mqtt_mimosa.mqtt_messages.Uuid;
 
 public class MqttMain implements MqttCallback {
-
+	
 	MqttClient client;
-
+	
 	public MqttMain() {
 	}
 
 	public static void main(String[] args) {
 		new MqttMain().startListening();
 	}
-
+	
 	public void startListening() {
 		try {
 			client = new MqttClient("tcp://mantis1.tmit.bme.hu:80", "MIMOSA_interface");
 			client.connect();
 			client.setCallback(this);
-			client.subscribe("/movement");
-			//client.subscribe("#"); és messageArived-ban ifekkel vagy switch-el filterelni
 
-			// message can be sent here to the topic
+			String payload = compileBoxCommand();
+	        client.publish("/command", payload.getBytes(), 0, true);
 		} catch (MqttException e) {
 			e.printStackTrace();
 		}
@@ -44,7 +52,6 @@ public class MqttMain implements MqttCallback {
 		try {
 			client.connect();
 			client.setCallback(this);
-			client.subscribe("/movement");
 		} catch (MqttException e) {
 			e.printStackTrace();
 		}
@@ -52,24 +59,58 @@ public class MqttMain implements MqttCallback {
 
 	@Override
 	public void deliveryComplete(IMqttDeliveryToken arg0) {
-		// TODO Auto-generated method stub
+		System.out.println("Message delivered! Press Ctrl+C to exit.");
 	}
 
 	@Override
-	public void messageArrived(String topic, MqttMessage message) throws Exception {
-		System.out.println("-------------------------------------------------");
-		System.out.println("| Topic:" + topic);
-		System.out.println("| Message: " + new String(message.getPayload()));
-		System.out.println("-------------------------------------------------");
+	public void messageArrived(String arg0, MqttMessage arg1) throws Exception {
+		// TODO Auto-generated method stub
 		
-		sendCEPEventToMimosa(new String(message.getPayload()));
 	}
 	
-	public void sendCEPEventToMimosa(String payload){
-		SimpleCEPEvent event = Utility.fromJson(payload, SimpleCEPEvent.class); 
-		//TODO conversion of the object to the proper MIMOSA payload
+	public String compileBoxCommand(){
+		List<String> values = new ArrayList<>();
+		values.add("doSpotMove");
+		HasValue hasValue = new HasValue();
+		hasValue.setValues(values);
 		
-		//Utility.sendRequest(URI, "POST", payload);
+		Uuid uuid = new Uuid();
+		uuid.setValue("3820");
+		
+		HasValueContainer hasValueContainer = new HasValueContainer();
+		hasValueContainer.setHasValue(hasValue);
+		hasValueContainer.setUuid(uuid);
+		List<HasValueContainer> hasValueContainers = new ArrayList<>();
+		hasValueContainers.add(hasValueContainer);
+		
+		HasAttribute hasAttribute = new HasAttribute();
+		hasAttribute.setHasAttributeClazzType("SD");
+		hasAttribute.setHasName("cmd");
+		hasAttribute.setHasValueContainers(hasValueContainers);
+		
+		HasEventDescriptionUuid hasEventDescriptionUuid = new HasEventDescriptionUuid();
+		hasEventDescriptionUuid.setValue("-4788471454629101380");
+		
+		DateFormat df = new SimpleDateFormat("yyyy.MM.dd. HH:mm:ss");
+		Date now = Calendar.getInstance().getTime();
+		String timeStamp = df.format(now);
+		
+		HasUTCDateTime hasUTCDateTime = new HasUTCDateTime();
+		hasUTCDateTime.setFormat("DATETIME");
+		hasUTCDateTime.setValue(timeStamp);
+		
+		HasTimestamp hasTimestamp = new HasTimestamp();
+		hasTimestamp.setHasUTCDateTime(hasUTCDateTime);
+		
+		List<HasAttribute> hasAttributes = new ArrayList<>();
+		hasAttributes.add(hasAttribute);
+		
+		BoxCommand boxCommand = new BoxCommand();
+		boxCommand.setHasAttributes(hasAttributes);
+		boxCommand.setHasEventDescriptionUuid(hasEventDescriptionUuid);
+		boxCommand.setHasTimestamp(hasTimestamp);
+		
+		return Utility.toJson(boxCommand);
 	}
 
 }
