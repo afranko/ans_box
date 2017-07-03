@@ -5,6 +5,12 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Base64;
+import java.util.Date;
 
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
@@ -15,13 +21,15 @@ import javax.ws.rs.core.UriBuilder;
 
 import org.glassfish.jersey.client.ClientConfig;
 import org.glassfish.jersey.client.ClientProperties;
+import org.glassfish.jersey.jackson.JacksonFeature;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 public final class Utility {
 	
-	private static final Gson gson = new GsonBuilder().setPrettyPrinting().create();
+	private static final Gson gson = new GsonBuilder().disableHtmlEscaping().setPrettyPrinting().create();
+	//private static final Gson gson = new Gson();
 
 	private Utility() {
 	}
@@ -33,6 +41,7 @@ public final class Utility {
 		configuration.property(ClientProperties.CONNECT_TIMEOUT, 30000);
 		configuration.property(ClientProperties.READ_TIMEOUT, 30000);
 		Client client = ClientBuilder.newClient(configuration);
+		client.register(JacksonFeature.class);
 
 		WebTarget target = client.target(UriBuilder.fromUri(URI).build());
 		switch (method) {
@@ -40,9 +49,7 @@ public final class Utility {
 			response = target.request().header("Content-type", "application/json").get();
 			break;
 		case "POST":
-			System.out.println("test1");
 			response = target.request().header("Content-type", "application/json").post(Entity.json(payload));
-			System.out.println("test2");
 			break;
 		case "PUT":
 			response = target.request().header("Content-type", "application/json").put(Entity.json(payload));
@@ -54,8 +61,11 @@ public final class Utility {
 			throw new Exception("Invalid method type was given to the Utility.sendRequest() method");
 		}
 
-		if (response == null || response.getStatus() == 500 || response.getStatus() == 400 || response.getStatus() == 404) {
-			throw new Exception("Response is null or the response status code is: 400, 404 or 500");
+		if (response.getStatus() == 500 || response.getStatus() == 400 || response.getStatus() == 404 || response.getStatus() == 409) {
+			throw new Exception("Response status code is: 400, 404, 409 or 500");
+		}
+		else{
+			System.out.println("POST was successful");
 		}
 
 		return response;
@@ -79,22 +89,21 @@ public final class Utility {
 		wr.close();
 		
 		StringBuilder sb = new StringBuilder();  
-		int HttpResult = connection.getResponseCode(); 
-		if (HttpResult == HttpURLConnection.HTTP_OK) {
-		    BufferedReader br = new BufferedReader(
-		            new InputStreamReader(connection.getInputStream(), "utf-8"));
-		    String line = null;  
-		    while ((line = br.readLine()) != null) {  
-		        sb.append(line + "\n");  
-		    }
-		    br.close();
+		BufferedReader br = new BufferedReader(new InputStreamReader(connection.getInputStream(), "utf-8"));
+	    String line = null;  
+	    while ((line = br.readLine()) != null) {  
+	        sb.append(line + "\n");  
+	    }
+	    br.close();
+	    
+		int HttpResult = connection.getResponseCode();
+		if (HttpResult == HttpURLConnection.HTTP_OK || HttpResult == HttpURLConnection.HTTP_CREATED) {
+			System.out.println("POST request was successful.\n");
 		}
 		else {
-			System.out.println(connection.getResponseMessage());
-			throw new Exception(connection.getResponseMessage()); 
+			System.out.println("POST request failed:" + sb.toString());
+			throw new Exception(sb.toString()); 
 		}  
-		
-		System.out.println("Response to POST request: " + sb.toString());
 	}
 	
 	public static <T> T fromJson(String json, Class<T> parsedClass){
@@ -103,5 +112,22 @@ public final class Utility {
 
 	public static <T> String toJson(T object){
 		return gson.toJson(object);
+	}
+	
+	public static String encodeFloatArray(float[] values){
+		ByteBuffer buf = ByteBuffer.allocate(Float.SIZE / Byte.SIZE * values.length);
+		buf.order(ByteOrder.LITTLE_ENDIAN);
+        buf.asFloatBuffer().put(values);
+        return Base64.getEncoder().encodeToString(buf.array());
+	}
+	
+	public static String fixDateFormat(String timeStamp){
+		Date date = new Date();
+		try {
+			date = new SimpleDateFormat("yyyy.MM.dd.HH:mm:ss").parse(timeStamp);
+		} catch (ParseException e) {
+			e.printStackTrace();
+		}
+		return new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(date);
 	}
 }
