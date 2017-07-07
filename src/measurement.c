@@ -393,6 +393,7 @@ void movMeas(RTC_HandleTypeDef *hrtc)
 	char itoa_subbuf[5];
 	uint8_t first_iteration = 0;
 	char *json_s;
+	uint32_t ostr_len;
 
 	/* Timestamp */
 	char tStamp[20];
@@ -404,7 +405,7 @@ void movMeas(RTC_HandleTypeDef *hrtc)
 	strncpy(outputString, json_s, json_slen);
 
 	/* Defending ourselves */
-	outputString[json_slen] = 0;
+	ostr_len = json_slen;
 
 	while(mfb.MSG_SENT == 0)
 	{
@@ -434,13 +435,17 @@ void movMeas(RTC_HandleTypeDef *hrtc)
 		/* Send message if there is not any data */
 		if(parse_flag == cBuff_EMPTY)
 		{
-			strcat(outputString, "\n");
+			sprintf(outputString + ostr_len, "\n");
+			ostr_len++;
 			for(uint8_t it1 = 0; it1< 24; it1++)
 			{
-				strcat(outputString, " ");
+				sprintf(outputString + ostr_len, " ");
+				ostr_len++;
 			}
 
-			strcat(outputString, strstr(json_s, "]"));
+			/* sprintf terminate the string with '\0' char */
+			sprintf(outputString + ostr_len, strstr(json_s, "]"));
+
 			/* Send Message */
 			sendMovementMessage(outputString, mfb.warning_flag);
 
@@ -459,20 +464,27 @@ void movMeas(RTC_HandleTypeDef *hrtc)
 			/* Add measurement to array */
 			if(first_iteration == 0)
 			{
-				strcat(outputString, msg_string);
-				strcat(outputString, "\"");
-				first_iteration++;
+				sprintf(outputString + ostr_len, msg_string);
+				ostr_len = ostr_len + 19;
+				sprintf(outputString + ostr_len, "\"");
+				ostr_len++;
+				first_iteration = 1;
 			}
 			else
 			{
-				strcat(outputString, ",\n");
+				sprintf(outputString + ostr_len, ",\n");
+				ostr_len = ostr_len+2;
 				for(uint8_t it2 = 0; it2< 28; it2++)
 				{
-					strcat(outputString, " ");
+					sprintf(outputString + ostr_len, " ");
+					ostr_len++;
 				}
-				strcat(outputString, "\"");
-				strcat(outputString, msg_string);
-				strcat(outputString, "\"");
+				sprintf(outputString + ostr_len, "\"");
+				ostr_len++;
+				sprintf(outputString + ostr_len, msg_string);
+				ostr_len = ostr_len + 19;
+				sprintf(outputString + ostr_len, "\"");
+				ostr_len++;
 			}
 		}
 	}

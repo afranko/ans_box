@@ -158,7 +158,7 @@ void serialWrite(GSM_MQTT *object, char *string)
 	while(senLen != strlen(tmp_string))
 	{
 		senLen = (strlen(tmp_string) > 10) ? 10:strlen(tmp_string);
-		while(HAL_UART_Transmit(object->gsm_uart, tmp_string, senLen, 5) != HAL_OK); //Elvileg ez magától eszi a stringet
+		while(HAL_UART_Transmit(object->gsm_uart, tmp_string, senLen, 8) != HAL_OK); //Elvileg ez magától eszi a stringet
 		tmp_string = tmp_string+senLen;
 		senLen = 0;
 	}
