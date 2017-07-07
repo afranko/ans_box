@@ -34,23 +34,33 @@ typedef struct measurement_flag_block_t
 	uint16_t pofc2;
 	uint16_t pofc3;
 
+	bool end_set;
 	bool endMeas;
+
+	uint32_t duration;		// Measurement Duration
 
 	bool S_MEAS_FLAG,		// Start of measurement flag
 	E_MEAS_FLAG,			// End of measurement flag
 	CLEAR_FLAG,				// Clear measurement flag
 	MSG_FLAG;				// Send message flag
 
-	uint32_t duration;		// Measurement Duration
+	bool warning_flag;		// Measurement Timeout flag
+	bool MSG_SENT;			// Message Sent flag
 
 }meas_flag_block;
 
+/* Buffers */
 extern cBuff cont_0, cont_1, cont_2, cont_3, gBuffer0, gBuffer1, gBuffer2, gBuffer3;
+
+/* Flag for forced measurement */
+extern bool HOLDFlag;
 
 uint16_t read_last(cBuff *buff_c);
 void meas_datamove(void);
 void init_meas_flag_block(meas_flag_block *flagBlock);
 void intoa_conv(uint16_t data, char *ibuffer);
 void getTimeStamp(RTC_HandleTypeDef *hrtc, char *TimeString);
+void envMeas(RTC_HandleTypeDef *hrtc);
+void movMeas(RTC_HandleTypeDef *hrtc);
 
 #endif /* MEASUREMENT_H_ */

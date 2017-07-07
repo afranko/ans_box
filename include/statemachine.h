@@ -28,6 +28,6 @@ machine_state p_high(void);
 machine_state p_meas_up(void);
 machine_state p_meas_down(void);
 void p_start(void);
-void statemachine_process();
+void statemachine_process(void);
 
 #endif /* STATEMACHINE_H_ */

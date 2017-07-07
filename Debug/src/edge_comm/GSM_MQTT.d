@@ -34,7 +34,13 @@ src/edge_comm/GSM_MQTT.o: ../src/edge_comm/GSM_MQTT.c \
  ../system/include/stm32f4-hal/stm32f4xx_hal_tim.h \
  ../system/include/stm32f4-hal/stm32f4xx_hal_tim_ex.h \
  ../system/include/stm32f4-hal/stm32f4xx_hal_uart.h \
- ../system/include/stm32f4-hal/stm32f4xx_hal_usart.h
+ ../system/include/stm32f4-hal/stm32f4xx_hal_usart.h ../include/init.h \
+ ../include/fatfs.h ../include/../src/FatFs/ff.h \
+ ../include/../src/FatFs/integer.h ../include/ffconf.h \
+ ../include/bsp_driver_sd.h ../include/../src/FatFs/ff_gen_drv.h \
+ ../include/../src/FatFs/diskio.h ../include/../src/FatFs/ff.h \
+ ../include/../src/FatFs/sd_diskio.h ../include/edge_comm/edge_comm.h \
+ ../include/edge_comm/parson.h ../include/edge_comm/GSM_MQTT.h
 
 ../include/edge_comm/GSM_MQTT.h:
 
@@ -109,3 +115,29 @@ src/edge_comm/GSM_MQTT.o: ../src/edge_comm/GSM_MQTT.c \
 ../system/include/stm32f4-hal/stm32f4xx_hal_uart.h:
 
 ../system/include/stm32f4-hal/stm32f4xx_hal_usart.h:
+
+../include/init.h:
+
+../include/fatfs.h:
+
+../include/../src/FatFs/ff.h:
+
+../include/../src/FatFs/integer.h:
+
+../include/ffconf.h:
+
+../include/bsp_driver_sd.h:
+
+../include/../src/FatFs/ff_gen_drv.h:
+
+../include/../src/FatFs/diskio.h:
+
+../include/../src/FatFs/ff.h:
+
+../include/../src/FatFs/sd_diskio.h:
+
+../include/edge_comm/edge_comm.h:
+
+../include/edge_comm/parson.h:
+
+../include/edge_comm/GSM_MQTT.h:

@@ -6,32 +6,30 @@
 
 /* After init the machine begins to work in START state */
 machine_state m_state = S_START;
+uint32_t timer = 0;
 
 /* Array for state machine */
-machine_state (*func_arr[5])(void);
+machine_state (*func_arr[5])(void) = {p_low, p_high, p_meas_up, p_meas_down, p_error};
 
-machine_state p_error(void) //WHAT ABOUT INF CYCLE? TODO - message send
+machine_state p_error(void)
 {
 	uint16_t position;
-	mfb.CLEAR_FLAG = true;
 
-	while(1)
+	position = read_last(&cont_0);
+	if(position > config_s.threshold_max || position < config_s.threshold_min)
 	{
-		position = read_last(&cont_0);
-		if(position > config_s.threshold_max || position < config_s.threshold_min)
+
+		if(position < config_s.threshold_min)
 		{
+			return S_LOW;
+		}
 
-			if(position < config_s.threshold_min)
-			{
-				return S_LOW;
-			}
-
-			if(position > config_s.threshold_max)
-			{
-				return S_HIGH;
-			}
+		if(position > config_s.threshold_max)
+		{
+			return S_HIGH;
 		}
 	}
+	return S_ERROR;
 }
 
 machine_state p_low(void)
@@ -39,7 +37,9 @@ machine_state p_low(void)
 	uint16_t position = read_last(&cont_0);
 	if(position > config_s.threshold_min)
 	{
-		mfb.S_MEAS_FLAG = true;
+		/* Only if there isn't measurement in procces */
+		if(mfb.duration == 0)
+			mfb.S_MEAS_FLAG = true;
 		return S_MEAS_UP;
 	}
 	return S_LOW;
@@ -50,7 +50,9 @@ machine_state p_high(void)
 	uint16_t position = read_last(&cont_0);
 	if(position < config_s.threshold_max)
 	{
-		mfb.S_MEAS_FLAG = true;
+		/* Only if there isn't measurement in procces */
+		if(mfb.duration == 0)
+			mfb.S_MEAS_FLAG = true;
 		return S_MEAS_DOWN;
 	}
 	return S_HIGH;
@@ -58,11 +60,10 @@ machine_state p_high(void)
 
 machine_state p_meas_up(void)
 {
-	uint32_t timer = 0;
 	uint16_t position;
 
-
-	timer = HAL_GetTick();
+	if(timer == 0)
+			timer = HAL_GetTick();
 	while(1)
 	{
 		position = read_last(&cont_0);
@@ -70,23 +71,34 @@ machine_state p_meas_up(void)
 		/* Go to error due to timeout */
 		if((HAL_GetTick() - timer) > config_s.meas_timeout)
 		{
+			/* Only if there isn't measurement in procces */
+			if(!mfb.end_set)
+			{
+				mfb.E_MEAS_FLAG = true;
+				mfb.warning_flag = true;
+			}
+			timer = 0;
 			return S_ERROR;
 		}
 
 		if(position > config_s.threshold_max)
 		{
-			mfb.E_MEAS_FLAG = true;
+			/* Only if there isn't measurement in procces */
+			if(!mfb.end_set)
+				mfb.E_MEAS_FLAG = true;
+			timer = 0;
 			return S_HIGH;
 		}
+		return S_MEAS_UP;
 	}
 }
 
 machine_state p_meas_down(void)
 {
-	uint32_t timer = 0;
 	uint16_t position;
 
-	timer = HAL_GetTick();
+	if(timer == 0)
+		timer = HAL_GetTick();
 	while(1)
 	{
 		position = read_last(&cont_0);
@@ -94,14 +106,25 @@ machine_state p_meas_down(void)
 		/* Go to error due to timeout */
 		if((HAL_GetTick() - timer) > config_s.meas_timeout)
 		{
+			/* Only if there isn't measurement in procces */
+			if(!mfb.end_set)
+			{
+				mfb.E_MEAS_FLAG = true;
+				mfb.warning_flag = true;
+			}
+			timer = 0;
 			return S_ERROR;
 		}
 
 		if(position < config_s.threshold_min)
 		{
-			mfb.E_MEAS_FLAG = true;
+			/* Only if there isn't measurement in procces */
+			if(!mfb.end_set)
+				mfb.E_MEAS_FLAG = true;
+			timer = 0;
 			return S_LOW;
 		}
+		return S_MEAS_DOWN;
 	}
 }
 
@@ -109,22 +132,15 @@ machine_state p_meas_down(void)
 void p_start(void)
 {
 	uint16_t pos;
-	uint32_t timer;
+	uint32_t timer_s;
 
-	/* Init Block */
-	func_arr[S_LOW] = p_low;
-	func_arr[S_HIGH] = p_high;
-	func_arr[S_MEAS_UP] = p_meas_up;
-	func_arr[S_MEAS_DOWN] = p_meas_down;
-	func_arr[S_ERROR] = p_error;
-
-	timer = HAL_GetTick();
+	timer_s = HAL_GetTick();
 
 	/* Start function */
 	while(1)
 	{
 		/* After 10 sec in "Start" state the function goes to CONFIG_ERROR */
-		if((HAL_GetTick() - timer) > config_s.meas_timeout)
+		if((HAL_GetTick() - timer_s) > config_s.meas_timeout)
 		{
 			config_error();
 			restart_init();
@@ -151,10 +167,8 @@ void p_start(void)
 	}
 }
 
-void statemachine_process()
+void statemachine_process(void)
 {
 	m_state = func_arr[m_state]();
 	return;
 }
-
-

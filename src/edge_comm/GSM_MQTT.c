@@ -9,22 +9,27 @@
 
 extern serialBuff uartBuffer;
 extern GSM_MQTT MQTT;
+extern Settings_HandleTypeDef config_s;
 
 uint8_t GSM_Response = 0;
 unsigned long previousMillis = 0;
 uint8_t pingSentCounter = 0;
 bool stringComplete = false;
-
+bool commandFlag = false;
 
 /* Users' settings
  * ---------------------------------------------------------------------------
  * */
 
+/* ---------- All of these paramateres are set in config.json! ---------- */
+
+/*
 char MQTT_HOST[] = "mantis1.tmit.bme.hu";	//MQTT broker adress
 char MQTT_PORT[] = "80";					//MQTT broker portnumber
 char clientName[] = "MANTIS_BOX_3";			//MQTT clientname
 char GSM_provider[] = "internet.telekom";	//SIM CARD's GSM Provider
 char pingRespMultiplier = 3;				//Below
+*/
 
 /*The client waits KeepAliveTime*pingRespMultiplier time to receive PingResponse,
  * if PingResponse didn't show up, the client tries to reconnect to the broker
@@ -49,21 +54,29 @@ void MQTT_start(UART_HandleTypeDef *huart, unsigned long KeepAlive)
 /* Autoconnect - automatically connects to MQTT server via TCP */
 void AutoConnect(GSM_MQTT *object)
 {
-	_connect(object, clientName, 0, 0, "", "", 1, 0, 0, 0, "", "");
+	_connect(object, config_s.client_name, 0, 0, "", "", 1, 0, 0, 0, "", "");
 }
 
 /* When connection is stable */
 void OnConnect(GSM_MQTT *object)
 {
-	publish(object, 0, 0, 1, _generateMessageID(object), "/welcome", "HELLO ANSALDO!");
-	//TODO - measlocid
+	char welcomeMessage[100]; //TODO kell-e?
+	strcpy(welcomeMessage, "HELLO ANSALDO! ID:");
+	strcat(welcomeMessage, config_s.client_name);
+    strcat(welcomeMessage, " is ready to work!");
+	publish(object, 0, 0, 1, _generateMessageID(object), "/welcome", welcomeMessage);
+
+	subscribe(object, 0, _generateMessageID(object), "/comm", 0); //Change topicname TODO
 
 }
 
 /* When message is received */
 void OnMessage(char *Topic, int TopicLength, char *Message, int MessageLength)
 {
-
+	if(strstr(Message, "doSpotMove") != 0)
+	{
+		commandFlag = true;
+	}
 }
 
 /* Users' function section ends here
@@ -130,32 +143,32 @@ char serialRead(serialBuff *buff)
 	return data;
 }
 
-/*  */
+/* Use when you want to send a single char - byte */
 void serialPrint(GSM_MQTT *object, char value)
 {
-	uint8_t out_val = value;
-	HAL_UART_Transmit(object->gsm_uart, &out_val, sizeof(char), HAL_MAX_DELAY);
+	while(HAL_UART_Transmit(object->gsm_uart, &value, 1, 5)!= HAL_OK);
 }
 
 /* Use when you want to send a char string */
 void serialWrite(GSM_MQTT *object, char *string)
 {
-/*
-	int string_length = strlen(string);
-	uint8_t s_buffer[string_length];
-	for(int i = 0; i < string_length; i++)
+
+	uint32_t senLen = 0;
+	char *tmp_string = string;
+	while(senLen != strlen(tmp_string))
 	{
-		s_buffer[i] = (uint8_t)string[i];
+		senLen = (strlen(tmp_string) > 10) ? 10:strlen(tmp_string);
+		while(HAL_UART_Transmit(object->gsm_uart, tmp_string, senLen, 5) != HAL_OK); //Elvileg ez magától eszi a stringet
+		tmp_string = tmp_string+senLen;
+		senLen = 0;
 	}
-	HAL_UART_Transmit(object->gsm_uart, s_buffer, sizeof(s_buffer), HAL_MAX_DELAY);*/
-	HAL_UART_Transmit(object->gsm_uart, string, strlen(string), HAL_MAX_DELAY); //TODO
 }
 
 /* Logging function - you can write your code below to log */
 void softLog(char *inputString)
 {
 	/* Insert logging function here */
-	//HAL_UART_Transmit(&loguart, inputString, sizeof(inputString), HAL_MAX_DELAY);
+	//HAL_UART_Transmit(&loguart, inputString, sizeof(inputString), HAL_MAX_DELAY); //It's an example
 
 }
 
@@ -170,7 +183,7 @@ void softLogLn(char *inputString)
 	outString[slen] = 10;
 
 	/* Insert logging function here */
-	//HAL_UART_Transmit(&loguart, outString, sizeof(outString), HAL_MAX_DELAY);
+	//HAL_UART_Transmit(&loguart, outString, sizeof(outString), HAL_MAX_DELAY); //It's an example
 }
 
 /* Print to trace a number as ASCII characters*/
@@ -227,12 +240,6 @@ void begin(GSM_MQTT* object)
 	}
 
 	_sendAT(object, "AT\r\n", 3000);
-
-	//If your simcard havs a pincode, uncomment this line below
-	//_sendAT(object, "AT+CPIN=2335\r\n", 5000);
-
-	//HAL_Delay(15000);
-
 	_tcpInit(object);
 }
 
@@ -344,13 +351,8 @@ void _tcpInit(GSM_MQTT* object)
         {
           case 2:
             {
-              /*_sendAT(object, "AT+CGDCONT=1,\"IP\",\"internet.telekom\"\r\n", 5000); //Only at first use
-              serialWrite(object, "CGDCONT=1,\"IP\",\"") ;
-              serialWrite(object, GSM_provider) ;
-              _sendAT(object, "\"\r\n", 5000);*/
-
               serialWrite(object, "AT+CSTT=\"") ;
-              serialWrite(object, GSM_provider) ;
+              serialWrite(object, config_s.gsm_apn);
               _sendAT(object, "\"\r\n", 5000);
               break;
             }
@@ -367,11 +369,11 @@ void _tcpInit(GSM_MQTT* object)
           case 5:
             {
 
-              char  s_string[sizeof(MQTT_HOST)+sizeof(MQTT_PORT)+sizeof("AT+CIPSTART=\"TCP\",\"\",\"\"\r\n")-2];
+              char  s_string[sizeof(config_s.mqtt_host)+sizeof(config_s.port)+sizeof("AT+CIPSTART=\"TCP\",\"\",\"\"\r\n")-2];
               strcpy(s_string, "AT+CIPSTART=\"TCP\",\"");
-              strcat(s_string, MQTT_HOST);
+              strcat(s_string, config_s.mqtt_host);
               strcat(s_string, "\",\"");
-              strcat(s_string, MQTT_PORT);
+              strcat(s_string, config_s.port);
               strcat(s_string, "\"\r\n");
               if(_sendAT(object, s_string, 10000) == 1)
               {
@@ -748,7 +750,7 @@ void processing(GSM_MQTT *object)
     _tcpInit(object);
   }
 
-  if(pingSentCounter >= pingRespMultiplier)
+  if(pingSentCounter >= config_s.ping_retry)
   {
 	  _pingRespHandler(object);
   	  pingSentCounter = 0;
@@ -1059,4 +1061,3 @@ miniBuff_State flush_miniBuff(miniBuff *m_buff)
 	}
 	return miniBuff_OK;
 }
-

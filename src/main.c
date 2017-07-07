@@ -1,4 +1,3 @@
-
 /* Includes ------------------------------------------------------------------ */
 #include "statemachine.h"
 
@@ -26,21 +25,18 @@ Settings_HandleTypeDef config_s;
 
 cBuff cont_0, cont_1, cont_2, cont_3, gBuffer0, gBuffer1, gBuffer2, gBuffer3;
 
-cBuff_State parse_flag;
-uint16_t msg_data;
-uint8_t ch_data;
-char msg_string[20];
-char itoa_subbuf[5];
-uint8_t MSG_SENT = 0;
 uint16_t env_counter = 0;
 bool timeFlag = false;
+bool envMeasFlag = false;
+bool HOLDFlag = false;
 
+extern serialBuff uartBuffer;
 extern GSM_MQTT MQTT;
 extern uint8_t bcounter;
 extern meas_flag_block mfb;
 extern miniBuff serial_time_buff;
 extern uint8_t serial_time_value;
-
+extern bool commandFlag;
 
 int main(void)
 {
@@ -70,76 +66,48 @@ int main(void)
  	}
 
 	/* Waiting for the first conversation */
-	while(bcounter == 0)
-	{
-		MSG_SENT = 0;
-	}
+	while(bcounter == 0);
 
 	/* Go to "Start" state */
 	p_start();
 
-	//TODO még mindig vannak bajok
+	/* Main Loop */
 	while(1)
 	{
+		if(commandFlag == true)
+		{
+			if((mfb.duration == 0) && (mfb.S_MEAS_FLAG == false))
+			{
+				HOLDFlag = true;
+				mfb.S_MEAS_FLAG = true;
+				mfb.E_MEAS_FLAG = true;
+			}
+			commandFlag = false;
+		}
 
-		statemachine_process();
+		/* Aggregate Measurement Data */
+		meas_datamove();
+
+		/* StateMachine */
+		if(HOLDFlag != true)
+		{
+			statemachine_process();
+		}
+
+		/* MQTT Communication */
 		MQTTProcessing();
 
+		/* Environment Measurement */
+		if(envMeasFlag == true)
+		{
+			envMeas(&hrtc);
+			envMeasFlag = false;
+		}
 
-		/* Send message */
+		/* Send Movement message */
 		if(mfb.MSG_FLAG == true)
 		{
-
-			JSON_Value *value_array = json_value_init_array();
-			JSON_Array *send_array = json_value_get_array(value_array);
-
-			while(MSG_SENT == 0)
-			{
-				/* Buffer0 data */
-				pop_cBuff(&gBuffer0, &msg_data);
-				intoa_conv(msg_data, itoa_subbuf);
-				strcpy(msg_string, itoa_subbuf);
-				strcat(msg_string, "-");
-
-				/* Buffer1 data */
-				pop_cBuff(&gBuffer1, &msg_data);
-				intoa_conv(msg_data, itoa_subbuf);
-				strcat(msg_string, itoa_subbuf);
-				strcat(msg_string, "-");
-
-				/* Buffer2 data */
-				pop_cBuff(&gBuffer2, &msg_data);
-				intoa_conv(msg_data, itoa_subbuf);
-				strcat(msg_string, itoa_subbuf);
-				strcat(msg_string, "-");
-
-				/* Buffer3 data */
-				parse_flag = pop_cBuff(&gBuffer3, &msg_data);
-				intoa_conv(msg_data, itoa_subbuf);
-				strcat(msg_string, itoa_subbuf);
-
-				/* Send message if there is not any data */
-				if(parse_flag == cBuff_EMPTY)
-				{
-
-					char tStamp[20];
-					getTimeStamp(&hrtc, tStamp);
-					sendMovementMessage(mfb.duration, config_s.client_name, tStamp, value_array);
-
-					mfb.MSG_FLAG = false;
-					MSG_SENT = 1;
-					mfb.CLEAR_FLAG = true;
-				}
-				else
-				{
-					/* Add measurement to array */
-					json_array_append_string(send_array, msg_string);
-					/* Free array -> in sendMovementMessage() function */
-				}
-			}
-
-			/* Reset SENT FLAG */
-			MSG_SENT = 0;
+			movMeas(&hrtc);
 		}
 	}
 }
@@ -166,13 +134,35 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 	{
 		if(env_counter == config_s.env_meas_freq)
 		{
-			//Mérés is kéne TODO
-
-			char tStamp[20];
-			getTimeStamp(&hrtc, tStamp);
-			sendEnvironmentMessage(config_s.client_name, tStamp);
+			envMeasFlag = true;
 			env_counter = 0;
 		}
 		env_counter++;
+	}
+}
+
+/*
+void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
+{
+	if(huart->Instance == MQTT.gsm_uart->Instance)
+	{
+		if(txString.buffer != NULL)
+		{
+			uint8_t txr_data = tx_read(&txString);
+			HAL_UART_Transmit_IT(huart, &txr_data, 1);
+			tx_go(&txString);
+		}
+	}
+}
+*/
+
+void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
+{
+	if(huart->ErrorCode)
+	{
+		if(timeFlag == true)
+			HAL_UART_Receive_IT(huart, &uartBuffer.temp_val, sizeof(char));
+		else
+			HAL_UART_Receive_IT(&huart3, &serial_time_value, 1);
 	}
 }

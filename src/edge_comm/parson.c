@@ -1,4 +1,3 @@
-
 /*
  Parson ( http://kgabis.github.com/parson/ )
  Copyright (c) 2012 - 2017 Krzysztof Gabis
@@ -27,7 +26,7 @@
 #endif /* _CRT_SECURE_NO_WARNINGS */
 #endif /* _MSC_VER */
 
-#include <edge_comm/parson.h>
+#include "edge_comm/parson.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -43,7 +42,7 @@
 #define STARTING_CAPACITY         15
 #define ARRAY_MAX_CAPACITY    122880 /* 15*(2^13) */
 #define OBJECT_MAX_CAPACITY      960 /* 15*(2^6)  */
-#define MAX_NESTING               19
+#define MAX_NESTING             2048
 #define DOUBLE_SERIALIZATION_FORMAT "%f"
 
 #define SIZEOF_TOKEN(a)       (sizeof(a) - 1)
@@ -418,9 +417,10 @@ static JSON_Value * json_object_nget_value(const JSON_Object *object, const char
 }
 
 static void json_object_free(JSON_Object *object) {
-    while(object->count--) {
-        parson_free(object->names[object->count]);
-        json_value_free(object->values[object->count]);
+    size_t i;
+    for (i = 0; i < object->count; i++) {
+        parson_free(object->names[i]);
+        json_value_free(object->values[i]);
     }
     parson_free(object->names);
     parson_free(object->values);
@@ -475,8 +475,9 @@ static JSON_Status json_array_resize(JSON_Array *array, size_t new_capacity) {
 }
 
 static void json_array_free(JSON_Array *array) {
-    while (array->count--) {
-        json_value_free(array->items[array->count]);
+    size_t i;
+    for (i = 0; i < array->count; i++) {
+        json_value_free(array->items[i]);
     }
     parson_free(array->items);
     parson_free(array);
@@ -565,9 +566,12 @@ static char* process_string(const char *input, size_t len) {
     const char *input_ptr = input;
     size_t initial_size = (len + 1) * sizeof(char);
     size_t final_size = 0;
-    char *output = (char*)parson_malloc(initial_size);
-    char *output_ptr = output;
-    char *resized_output = NULL;
+    char *output = NULL, *output_ptr = NULL, *resized_output = NULL;
+    output = (char*)parson_malloc(initial_size);
+    if (output == NULL) {
+        goto error;
+    }
+    output_ptr = output;
     while ((*input_ptr != '\0') && (size_t)(input_ptr - input) < len) {
         if (*input_ptr == '\\') {
             input_ptr++;
@@ -677,9 +681,9 @@ static JSON_Value * parse_object_value(const char **string, size_t nesting) {
             json_value_free(output_value);
             return NULL;
         }
-        if(json_object_add(output_object, new_key, new_value) == JSONFailure) {
+        if (json_object_add(output_object, new_key, new_value) == JSONFailure) {
             parson_free(new_key);
-            parson_free(new_value);
+            json_value_free(new_value);
             json_value_free(output_value);
             return NULL;
         }
@@ -715,12 +719,12 @@ static JSON_Value * parse_array_value(const char **string, size_t nesting) {
     }
     while (**string != '\0') {
         new_array_value = parse_value(string, nesting);
-        if (!new_array_value) {
+        if (new_array_value == NULL) {
             json_value_free(output_value);
             return NULL;
         }
         if (json_array_add(output_array, new_array_value) == JSONFailure) {
-            parson_free(new_array_value);
+            json_value_free(new_array_value);
             json_value_free(output_value);
             return NULL;
         }
@@ -1828,11 +1832,10 @@ JSON_Status json_object_dotremove(JSON_Object *object, const char *name) {
     } else {
         current_name = parson_strndup(name, dot_pos - name);
         temp_obj = json_object_get_object(object, current_name);
+        parson_free(current_name);
         if (temp_obj == NULL) {
-            parson_free(current_name);
             return JSONFailure;
         }
-        parson_free(current_name);
         return json_object_dotremove(temp_obj, dot_pos + 1);
     }
 }

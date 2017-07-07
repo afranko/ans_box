@@ -297,8 +297,7 @@ void MX_TIM4_Init(void)
 /* USART3 init function */
 void MX_USART3_UART_Init(void)
 {
-  __GPIOB_CLK_ENABLE();
-  __USART3_CLK_ENABLE();
+
   huart3.Instance = USART3;
   huart3.Init.BaudRate = 115200;
   huart3.Init.WordLength = UART_WORDLENGTH_8B;
@@ -368,7 +367,7 @@ void write_default_cfgfile()
 	json_object_set_string(default_conf_object, "port", "80");
 	json_object_set_string(default_conf_object, "gsm_apn", "internet.telekom");
 	json_object_set_number(default_conf_object, "ping_retry", 3);
-	json_object_set_string(default_conf_object, "client_name", "ANS_MEAS_BOX_0000001");
+	json_object_set_string(default_conf_object, "client_name", "ANS_MEAS_BOX_001");
 
 	char *serialized_string = NULL;
 	serialized_string = json_serialize_to_string_pretty(default_conf_value);
@@ -439,9 +438,8 @@ void load_config_sd()
 					return;
 				}
 
-				JSON_Value *conf_setup = json_parse_string(in_buff);
-
 				/* Get config settings from JSON */
+				JSON_Value *conf_setup = json_parse_string(in_buff);
 
 				config_s.threshold_min = (uint16_t)json_object_get_number(json_object(conf_setup), "threshold_min");
 				config_s.threshold_max = (uint16_t)json_object_get_number(json_object(conf_setup), "threshold_max");
@@ -518,7 +516,7 @@ void setRTC(void)
 	}
 
 	HAL_UART_Transmit(&huart3, "AT\r\n", strlen("AT\r\n"), HAL_MAX_DELAY);
-	if(check_string("") != true)
+	if(check_string("OK") != true)
 	{
 		return;
 	}
@@ -772,7 +770,8 @@ bool check_string(char *reply)
 	uint8_t serial_head = 0;
 	uint32_t tick_t = 0;
 	tick_t = HAL_GetTick();
-	while((HAL_GetTick() - tick_t) < 5000) //TODO, 10,5k?
+
+	while((HAL_GetTick() - tick_t) < 5000)
 	{
 		uint8_t c_data;
 		if(pop_miniBuff(&serial_time_buff, &c_data) != miniBuff_EMPTY)

@@ -40,7 +40,7 @@ src/main.o: ../src/main.c ../include/statemachine.h \
  ../include/../src/FatFs/ff_gen_drv.h ../include/../src/FatFs/diskio.h \
  ../include/../src/FatFs/ff.h ../include/../src/FatFs/sd_diskio.h \
  ../include/edge_comm/edge_comm.h ../include/edge_comm/parson.h \
- ../include/edge_comm/GSM_MQTT.h
+ ../include/edge_comm/GSM_MQTT.h ../include/init.h
 
 ../include/statemachine.h:
 
@@ -145,3 +145,5 @@ src/main.o: ../src/main.c ../include/statemachine.h \
 ../include/edge_comm/parson.h:
 
 ../include/edge_comm/GSM_MQTT.h:
+
+../include/init.h:

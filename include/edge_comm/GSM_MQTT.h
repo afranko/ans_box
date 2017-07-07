@@ -10,6 +10,7 @@
 #include <stdint.h>
 #include <string.h>
 #include "stm32f4xx_hal.h"
+#include "init.h"
 
 #ifndef GSM_MQTT_H_
 #define GSM_MQTT_H_

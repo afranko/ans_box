@@ -16,7 +16,7 @@ typedef struct settings_t
 	char port[5];
 	char gsm_apn[30];
 	uint8_t ping_retry;
-	char client_name[21];
+	char client_name[17];
 }Settings_HandleTypeDef;
 
 typedef enum{

@@ -11,6 +11,9 @@ uint8_t bcounter = 0;
 /* Measurement Flag Block */
 meas_flag_block mfb;
 
+/* Output buffer */
+char outputString[70000];
+
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 {
 	if(hadc->Instance == ADC3)
@@ -40,28 +43,24 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 		/* Increment counter*/
 		bcounter++;
 	}
-	meas_datamove();
 }
 
 uint16_t read_last(cBuff *buff_c)
 {
 	uint16_t temphead;
+	uint16_t lastData;
 	if(buff_c->head == 0)
-	{
 		temphead = BUFFER_SIZE - 1;
-	}
 	else
-	{
 		temphead = buff_c->head - 1;
-	}
-	uint16_t lastData = buff_c->buffer[temphead];
+	lastData = buff_c->buffer[temphead];
 	return lastData;
 }
 
 void meas_datamove(void)
 {
 
-	if(mfb.CLEAR_FLAG == true) //TODO timeout esetén van üzenet? - WARNING MESSAGE
+	if(mfb.CLEAR_FLAG == true)
 	{
 		init_meas_flag_block(&mfb);
 		flush_cBuff(&gBuffer0);
@@ -143,23 +142,27 @@ void meas_datamove(void)
 	if((mfb.measc0 == mfb.measLength) &&
 			(mfb.measc1 == mfb.measLength) &&
 				(mfb.measc2 == mfb.measLength) &&
-					(mfb.measc3 == mfb.measLength) && (mfb.mFlag == true))
+					(mfb.measc3 == mfb.measLength) && (mfb.mFlag) && (mfb.end_set))
 	{
 		mfb.mFlag = false;
 		mfb.endMeas = true;
 	}
 
 	/* Set positive offset head */
-	if(mfb.E_MEAS_FLAG == true)
+	if(mfb.E_MEAS_FLAG)
 	{
 		/*Set measurement length */
-		mfb.measLength = (cont_0.head) - (mfb.noffset0+1);
+		if(cont_0.head > mfb.noffset0)
+			mfb.measLength = ((cont_0.head) - (mfb.noffset0+1));
+		else
+			mfb.measLength = (BUFFER_SIZE - mfb.noffset0+1) + cont_0.head;
 
+		mfb.end_set = true;
 		mfb.E_MEAS_FLAG = false;
 	}
 
 	/* Start reading measurement data */
-	if(mfb.mFlag == true)
+	if(mfb.mFlag)
 	{
 		uint16_t d_data;
 
@@ -189,7 +192,7 @@ void meas_datamove(void)
 	}
 
 	/* Start reading positive Measurement */
-	if(mfb.endMeas == true)
+	if(mfb.endMeas)
 	{
 		uint16_t e_data;
 
@@ -231,7 +234,7 @@ void meas_datamove(void)
 			mfb.MSG_FLAG = true;
 
 			/* Set Timer */
-			mfb.duration = (HAL_GetTick() - mfb.duration);
+			mfb.duration = (HAL_GetTick() - mfb.duration + config_s.meas_offset);
 		}
 	}
 }
@@ -253,7 +256,7 @@ void init_meas_flag_block(meas_flag_block *flagBlock)
 	flagBlock->offMeas = false;
 
 	flagBlock->mFlag = false;
-	flagBlock->measLength = BUFFER_SIZE;
+	flagBlock->measLength = 1000;
 
 	flagBlock->measc0 = 0;
 	flagBlock->measc1 = 0;
@@ -265,19 +268,23 @@ void init_meas_flag_block(meas_flag_block *flagBlock)
 	flagBlock->pofc2 = 0;
 	flagBlock->pofc3 = 0;
 
+	flagBlock->end_set = false;
 	flagBlock->endMeas = false;
 	flagBlock->duration = 0;
+
+	flagBlock->warning_flag = false;
+	flagBlock->MSG_SENT = false;
 }
 
 void intoa_conv(uint16_t data, char *ibuffer)
 {
+	uint8_t len_0 = 4;
+	char s_buf[5];
+
 	for(uint8_t j = 0; j < 5; j++)
 	{
 		ibuffer[j] = 0;
 	}
-
-	uint8_t len_0 = 4;
-	char s_buf[5];
 
 	itoa(data, s_buf, 10);
 
@@ -298,7 +305,6 @@ void intoa_conv(uint16_t data, char *ibuffer)
 	}
 
 	strcat(ibuffer, s_buf);
-	ibuffer[4] = 0;
 	return;
 }
 
@@ -366,5 +372,114 @@ void getTimeStamp(RTC_HandleTypeDef *hrtc, char *TimeString)
 	}
 	strcat(TiSt, uncon);
 	strcpy(TimeString, TiSt);
+	return;
+}
+
+void envMeas(RTC_HandleTypeDef *hrtc)
+{
+	//Meas missing TODO
+	char tStamp[20];
+	getTimeStamp(hrtc, tStamp);
+	//sendEnvironmentMessage(config_s.client_name, tStamp);
+
+	return;
+}
+
+void movMeas(RTC_HandleTypeDef *hrtc)
+{
+	cBuff_State parse_flag;
+	uint16_t msg_data;
+	char msg_string[20];
+	char itoa_subbuf[5];
+	uint8_t first_iteration = 0;
+	char *json_s;
+
+	/* Timestamp */
+	char tStamp[20];
+	getTimeStamp(hrtc, tStamp);
+
+	/* Copy JSON */
+	json_s = parseMovementMessage(mfb.duration, config_s.client_name, tStamp);
+	uint16_t json_slen = strstr(json_s, "xxxx")-json_s;
+	strncpy(outputString, json_s, json_slen);
+
+	/* Defending ourselves */
+	outputString[json_slen] = 0;
+
+	while(mfb.MSG_SENT == 0)
+	{
+		/* Buffer0 data */
+		pop_cBuff(&gBuffer0, &msg_data);
+		intoa_conv(msg_data, itoa_subbuf);
+		strcpy(msg_string, itoa_subbuf);
+		strcat(msg_string, "-");
+
+		/* Buffer1 data */
+		pop_cBuff(&gBuffer1, &msg_data);
+		intoa_conv(msg_data, itoa_subbuf);
+		strcat(msg_string, itoa_subbuf);
+		strcat(msg_string, "-");
+
+		/* Buffer2 data */
+		pop_cBuff(&gBuffer2, &msg_data);
+		intoa_conv(msg_data, itoa_subbuf);
+		strcat(msg_string, itoa_subbuf);
+		strcat(msg_string, "-");
+
+		/* Buffer3 data */
+		parse_flag = pop_cBuff(&gBuffer3, &msg_data);
+		intoa_conv(msg_data, itoa_subbuf);
+		strcat(msg_string, itoa_subbuf);
+
+		/* Send message if there is not any data */
+		if(parse_flag == cBuff_EMPTY)
+		{
+			strcat(outputString, "\n");
+			for(uint8_t it1 = 0; it1< 24; it1++)
+			{
+				strcat(outputString, " ");
+			}
+
+			strcat(outputString, strstr(json_s, "]"));
+			/* Send Message */
+			sendMovementMessage(outputString, mfb.warning_flag);
+
+			/* Reset Flags */
+			mfb.warning_flag = false;
+			mfb.MSG_FLAG = false;
+			mfb.MSG_SENT = 1;
+			mfb.CLEAR_FLAG = true;
+
+			/* Back to run */
+			HOLDFlag = false;
+		}
+
+		else
+		{
+			/* Add measurement to array */
+			if(first_iteration == 0)
+			{
+				strcat(outputString, msg_string);
+				strcat(outputString, "\"");
+				first_iteration++;
+			}
+			else
+			{
+				strcat(outputString, ",\n");
+				for(uint8_t it2 = 0; it2< 28; it2++)
+				{
+					strcat(outputString, " ");
+				}
+				strcat(outputString, "\"");
+				strcat(outputString, msg_string);
+				strcat(outputString, "\"");
+			}
+		}
+	}
+
+	/* Reset SENT FLAG & Free JSON string */
+	json_free_serialized_string(json_s);
+
+	mfb.MSG_SENT = 0;
 	return;
 }

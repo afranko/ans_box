@@ -39,7 +39,7 @@ src/circ_buff.o: ../src/circ_buff.c ../include/circ_buff.h \
  ../include/../src/FatFs/ff_gen_drv.h ../include/../src/FatFs/diskio.h \
  ../include/../src/FatFs/ff.h ../include/../src/FatFs/sd_diskio.h \
  ../include/edge_comm/edge_comm.h ../include/edge_comm/parson.h \
- ../include/edge_comm/GSM_MQTT.h
+ ../include/edge_comm/GSM_MQTT.h ../include/init.h
 
 ../include/circ_buff.h:
 
@@ -140,3 +140,5 @@ src/circ_buff.o: ../src/circ_buff.c ../include/circ_buff.h \
 ../include/edge_comm/parson.h:
 
 ../include/edge_comm/GSM_MQTT.h:
+
+../include/init.h:

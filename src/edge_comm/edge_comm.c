@@ -1,11 +1,18 @@
-#include "edge_comm/edge_comm.h"
+/* Communication Library for Stm32F4 via SIM800 & MQTT */
 
-/* This lib was written for STM32F407 based board, using other board define another macro and write functions */
+#include "edge_comm/edge_comm.h"
 
 GSM_MQTT MQTT;
 MQTT_QoS QoSVal;
 serialBuff uartBuffer;
 
+/* UUIDs */
+char mevd_uuid[] = "5392";		//Movement Event Description UUID
+char eevd_uuid[] = "3143";		//Environment Event Description UUID
+
+char rt_eevd_uuid[] = "366";	//RailTemperature UUID
+char h_eevd_uuid[] = "365";		//AmbientHumidity UUID
+char at_eevd_uuid[] = "364";	//AmbientTemperature UUID
 
 /* Qos Settings */
 void setSend(char s_QoS, char s_DUP, char s_RETAIN)
@@ -51,7 +58,7 @@ void sendEnvironmentMessage(char *meas_loc, char* timeStamp)
 		JSON_Value *arrval = json_value_init_object();
 		JSON_Object *arro = json_value_get_object(arrval);
 
-		json_object_set_string(arro, "hasAttributeClazzType", "DA");
+		json_object_set_string(arro, "hasAttributeClassType", "DA");
 		json_object_set_string(arro, "hasName", "env_meas");
 
 		/* Sub Array Block */
@@ -65,7 +72,7 @@ void sendEnvironmentMessage(char *meas_loc, char* timeStamp)
 		    JSON_Object *arrsub_o_1 = json_value_get_object(arrsub_val_1);
 
 		    json_object_dotset_number(arrsub_o_1, "hasValue.value", 20);
-		    json_object_dotset_string(arrsub_o_1, "uuid.value", "ambientTemp");
+		    json_object_dotset_string(arrsub_o_1, "uuid.value", at_eevd_uuid);
 
 		    json_array_append_value(arrsub_obj, arrsub_val_1);
 
@@ -74,7 +81,7 @@ void sendEnvironmentMessage(char *meas_loc, char* timeStamp)
 		    JSON_Object *arrsub_o_2 = json_value_get_object(arrsub_val_2);
 
 		    json_object_dotset_number(arrsub_o_2, "hasValue.value", 125);
-		    json_object_dotset_string(arrsub_o_2, "uuid.value", "ambientHumidity");
+		    json_object_dotset_string(arrsub_o_2, "uuid.value", h_eevd_uuid);
 		    json_array_append_value(arrsub_obj, arrsub_val_2);
 
 		    /* Sub Object no.3 */
@@ -82,14 +89,14 @@ void sendEnvironmentMessage(char *meas_loc, char* timeStamp)
 		    JSON_Object *arrsub_o_3 = json_value_get_object(arrsub_val_3);
 
 		    json_object_dotset_number(arrsub_o_3, "hasValue.value", 20);
-		    json_object_dotset_string(arrsub_o_3, "uuid.value", "railTemp");
+		    json_object_dotset_string(arrsub_o_3, "uuid.value", rt_eevd_uuid);
 		    json_array_append_value(arrsub_obj, arrsub_val_3);
 
 		    /* Append the big array */
 		    json_array_append_value(arr_obj, arrval);
 
 		    /* Remaining pairs */
-		    json_object_dotset_string(root_object, "hasEventDescriptionUuid.value", "6511");
+		    json_object_dotset_string(root_object, "hasEventDescriptionUuid.value", eevd_uuid);
 
 		    JSON_Value *loc2val = json_value_init_object();
 		    JSON_Object *loc2 = json_value_get_object(loc2val);
@@ -119,7 +126,7 @@ void sendEnvironmentMessage(char *meas_loc, char* timeStamp)
 
 }
 
-void sendMovementMessage(uint32_t duration, char *meas_loc, char* timeStamp, JSON_Value *measurement_array)
+char* parseMovementMessage(uint32_t duration, char *meas_loc, char* timeStamp)
 {
 	/* Init JSON Object */
 	JSON_Value *root_value = json_value_init_object();
@@ -137,7 +144,7 @@ void sendMovementMessage(uint32_t duration, char *meas_loc, char* timeStamp, JSO
 		JSON_Value *arrval = json_value_init_object();
 	    JSON_Object *arro = json_value_get_object(arrval);
 
-	    json_object_set_string(arro, "hasAttributeClazzType", "DA");
+	    json_object_set_string(arro, "hasAttributeClassType", "DA");
 	    json_object_set_string(arro, "hasName", "mov_meas");
 
 	    	/* Sub Array Block */
@@ -150,7 +157,15 @@ void sendMovementMessage(uint32_t duration, char *meas_loc, char* timeStamp, JSO
 	    		JSON_Value *arrsub_val_1 = json_value_init_object();
 	    		JSON_Object *arrsub_o_1 = json_value_get_object(arrsub_val_1);
 
-	    		json_object_dotset_value(arrsub_o_1, "hasValue.values", measurement_array);
+	    		/* Mini example Array */
+	    		JSON_Value *miniarr_val = json_value_init_array();
+	    		JSON_Array *miniarr = json_value_get_array(miniarr_val);
+	    		json_array_append_string(miniarr, "xxxx");
+	    		json_array_append_string(miniarr, "yyyy");
+	    		json_object_dotset_value(arrsub_o_1, "hasValue.values", miniarr_val);
+
+	    		/* Sub Object no.1 */
+
 	    		json_object_dotset_string(arrsub_o_1, "uuid.value", "move");
 
 	    		json_array_append_value(arrsub_obj, arrsub_val_1);
@@ -167,7 +182,7 @@ void sendMovementMessage(uint32_t duration, char *meas_loc, char* timeStamp, JSO
 	    json_array_append_value(arr_obj, arrval);
 
 	    /* Remaining pairs */
-	    json_object_dotset_string(root_object, "hasEventDescriptionUuid.value", "5392"); //TODO - frimware const str
+	    json_object_dotset_string(root_object, "hasEventDescriptionUuid.value", mevd_uuid);
 
 	    JSON_Value *loc2val = json_value_init_object();
 	    JSON_Object *loc2 = json_value_get_object(loc2val);
@@ -182,17 +197,29 @@ void sendMovementMessage(uint32_t duration, char *meas_loc, char* timeStamp, JSO
 
 	    json_object_dotset_value(root_object, "hasTimestamp.hasUTCDateTime", times2val);
 
+	/* Create String */
 	serialized_string = json_serialize_to_string_pretty(root_value);
 
+	/* Free JSON */
+	json_value_free(root_value);
+
+	/* Return string */
+	return serialized_string;
+}
+
+void sendMovementMessage(char* meas_string, bool wFlag)
+{
 	/* Publish JSON */
 	if(available(&MQTT))
 	{
-		publish(&MQTT, QoSVal.s_DUP, QoSVal.s_QoS, QoSVal.s_RETAIN, _generateMessageID(&MQTT), "/movement", serialized_string);
-	}
-
-	json_free_serialized_string(serialized_string);
-	json_value_free(root_value);
-
+		if(wFlag == true)
+		{
+			publish(&MQTT, QoSVal.s_DUP, QoSVal.s_QoS, QoSVal.s_RETAIN, _generateMessageID(&MQTT),
+					"/warning", "Measurement Timeout!");
+		}
+			publish(&MQTT, QoSVal.s_DUP, QoSVal.s_QoS, QoSVal.s_RETAIN, _generateMessageID(&MQTT),
+					"/movement", meas_string);
+		}
 	return;
 }
 
@@ -203,28 +230,5 @@ void MQTTProcessing(void)
 		serialEvent();
 	}
 	processing(&MQTT);
+	return;
 }
-
-/*
-void customSend()
-{
-    JSON_Value *root_value = json_value_init_object();
-	JSON_Object *root_object = json_value_get_object(root_value);
-
-    json_object_set_number(root_object, "name", number);
-    json_object_set_string(root_object, "name", "string");
-    json_object_dotset_string(root_object, "name.subname", "string");
-    json_object_set_value(mov_root_object, "name", json_parse_string("[\"data1\",\"data2"]"));
-
-	char *serialized_string = NULL;
-	serialized_string = json_serialize_to_string_pretty(root_value);
-
-	if(available(&MQTT))
-	{
-		publish(&MQTT, QoSVal.DUP, QoSVal.QoS, QoSVal.RETAIN, _generateMessageID(&MQTT), "TOPICNAME", serialized_string);
-	}
-
-	json_free_serialized_string(serialized_string);
-	json_value_free(root_value);
-}
-*/
