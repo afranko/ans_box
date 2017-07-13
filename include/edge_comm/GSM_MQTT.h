@@ -15,9 +15,9 @@
 #ifndef GSM_MQTT_H_
 #define GSM_MQTT_H_
 
-#define UART_BUFFER_LENGTH 300    //Maximum length allowed for UART data
-#define TOPIC_BUFFER_LENGTH 50    //Maximum length allowed Topic
-#define MESSAGE_BUFFER_LENGTH 250  //Maximum length allowed data
+#define UART_BUFFER_LENGTH 300U    //Maximum length allowed for UART data
+#define TOPIC_BUFFER_LENGTH 50U    //Maximum length allowed Topic
+#define MESSAGE_BUFFER_LENGTH 250U  //Maximum length allowed data
 
 // ######################################################################################################################
 #define CONNECT     1   //Client request to connect to Server                Client          Server
@@ -120,6 +120,7 @@ typedef struct gsm_mqtt_t{
 	UART_HandleTypeDef* gsm_uart;
 	volatile uint8_t uartFlag;
 	volatile bool respFlag;
+	short fckpCounter;
 
 }GSM_MQTT;
 

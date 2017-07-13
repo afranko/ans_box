@@ -47,14 +47,7 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 
 uint16_t read_last(cBuff *buff_c)
 {
-	uint16_t temphead;
-	uint16_t lastData;
-	if(buff_c->head == 0)
-		temphead = BUFFER_SIZE - 1;
-	else
-		temphead = buff_c->head - 1;
-	lastData = buff_c->buffer[temphead];
-	return lastData;
+	return buff_c->buffer[(buff_c->head-1) % BUFFER_SIZE];
 }
 
 void meas_datamove(void)

@@ -61,7 +61,7 @@ void AutoConnect(GSM_MQTT *object)
 void OnConnect(GSM_MQTT *object)
 {
 	char welcomeMessage[100]; //TODO kell-e?
-	strcpy(welcomeMessage, "HELLO ANSALDO! ID:");
+	strcpy(welcomeMessage, "HELLO ANSALDO! ");
 	strcat(welcomeMessage, config_s.client_name);
     strcat(welcomeMessage, " is ready to work!");
 	publish(object, 0, 0, 1, _generateMessageID(object), "/welcome", welcomeMessage);
@@ -152,16 +152,29 @@ void serialPrint(GSM_MQTT *object, char value)
 /* Use when you want to send a char string */
 void serialWrite(GSM_MQTT *object, char *string)
 {
+	uint32_t tx_len = strlen(string);
+	char *tmp_string = string;
+	for(uint32_t tx_counter = 0; tx_counter < tx_len; tx_counter++)
+	{
+		if((tx_counter % 1024) == 0)
+			HAL_Delay(200);
+		while(HAL_UART_Transmit(object->gsm_uart, tmp_string, 1, 1) != HAL_OK);
+		tmp_string++;
+	}
+	return;
 
+	/*
 	uint32_t senLen = 0;
 	char *tmp_string = string;
 	while(senLen != strlen(tmp_string))
 	{
 		senLen = (strlen(tmp_string) > 10) ? 10:strlen(tmp_string);
-		while(HAL_UART_Transmit(object->gsm_uart, tmp_string, senLen, 8) != HAL_OK); //Elvileg ez magától eszi a stringet
+		while(HAL_UART_Transmit(object->gsm_uart, tmp_string, senLen, 8) != HAL_OK);
 		tmp_string = tmp_string+senLen;
 		senLen = 0;
 	}
+	return;
+	*/
 }
 
 /* Logging function - you can write your code below to log */
@@ -224,6 +237,7 @@ void GSM_MQTT_constructor(GSM_MQTT *object, unsigned long KeepAlive, UART_Handle
 	object->_tcpStatus = 0;
 	object->_tcpStatusPrev = 0;
 	object->_KeepAliveTimeOut = KeepAlive;
+	object->fckpCounter = 0;
 
 	/* UART settings */
 	object->gsm_uart = huart;
@@ -275,6 +289,13 @@ char sendATreply(GSM_MQTT *object, char *command, char *replystr, unsigned long 
 
 void _tcpInit(GSM_MQTT* object)
 {
+  if(object->fckpCounter > 5)
+  {
+	  object->fckpCounter = 0;
+	  HAL_GPIO_WritePin(GPIOF, GPIO_PIN_15, GPIO_PIN_RESET);
+	  HAL_Delay(1500);
+	  HAL_GPIO_WritePin(GPIOF, GPIO_PIN_15, GPIO_PIN_SET);
+  }
   switch (object->modemStatus)
   {
     case 0:
@@ -311,6 +332,8 @@ void _tcpInit(GSM_MQTT* object)
           HAL_Delay(2000);
           _sendAT(object, "AT+CIPMUX=0\r\n", 2000);
           _sendAT(object, "AT+CIPMODE=1\r\n", 2000);
+          //_sendAT(object, "AT+CIPCCFG=5,2,1024,1,0,1460,100\r\n", 2000);
+          //_sendAT(object, "AT+IFC=2,2\r\n", 2000); //TODO
           if(sendATreply(object, "AT+CGATT?\r\n", ": 1", 4000) != 1)
           {
             _sendAT(object, "AT+CGATT=1\r\n", 2000);
@@ -320,6 +343,7 @@ void _tcpInit(GSM_MQTT* object)
         }
         else
         {
+          object->fckpCounter++;
           object->modemStatus = 2;
           break;
         }
@@ -861,7 +885,8 @@ void serialEvent()
         uint32_t multiplier=1;
         HAL_Delay(2);
         char Cchar = inChar;
-        while ( (NextLengthByte == true) && (MQTT.TCP_Flag == true))
+        uint32_t sosCounter = HAL_GetTick();
+        while ( (NextLengthByte == true) && (MQTT.TCP_Flag == true) && (HAL_GetTick() - sosCounter > (MQTT._KeepAliveTimeOut)*1000*config_s.ping_retry))
         {
           if (serialAvailable(&MQTT, &uartBuffer))
           {
@@ -870,6 +895,14 @@ void serialEvent()
             if ((((Cchar & 0xFF) == 'C') && ((inChar & 0xFF) == 'L') && (MQTT.length == 0)) || (((Cchar & 0xFF) == '+') && ((inChar & 0xFF) == 'P') && (MQTT.length == 0)))
             {
               MQTT.index = 0;
+
+              /* Inside protection */
+              if(MQTT.index > UART_BUFFER_LENGTH-1)
+              {
+            	  disconnect(&MQTT);
+            	  AutoConnect(&MQTT);
+            	  return;
+              }
               MQTT.inputString[MQTT.index++] = Cchar;
               MQTT.inputString[MQTT.index++] = inChar;
               MQTT.TCP_Flag = false;
@@ -893,6 +926,10 @@ void serialEvent()
               }
             }
           }
+          else
+          {
+
+          }
         }
         MQTT.lengthLocal = MQTT.length;
         //softLogSinLn(MQTT.length);
@@ -903,6 +940,13 @@ void serialEvent()
           uint32_t a = 0;
           while ((MQTT.length-- > 0) && (serialAvailable(&MQTT, &uartBuffer)))
           {
+        	/* Inside protection */
+        	if(MQTT.index > UART_BUFFER_LENGTH-1)
+        	{
+        	  disconnect(&MQTT);
+        	  AutoConnect(&MQTT);
+        	  return;
+        	}
             MQTT.inputString[MQTT.index++] = serialRead(&uartBuffer);
             HAL_Delay(1);
           }
@@ -923,13 +967,15 @@ void serialEvent()
             uint32_t TopicLength = (MQTT.inputString[0]) * 256 + (MQTT.inputString[1]);
             //softLog("Topic : '");
             MQTT.PublishIndex = 0;
-            if(TopicLength > TOPIC_BUFFER_LENGTH)
-            {
-            	disconnect(&MQTT);
-            	AutoConnect(&MQTT);
-            }
             for (uint32_t iter = 2; iter < TopicLength + 2; iter++)
             {
+            	/* Inside protection */
+            	if(MQTT.index > TOPIC_BUFFER_LENGTH-1)
+            	{
+            	disconnect(&MQTT);
+            	AutoConnect(&MQTT);
+            	return;
+            	}
               //softLog(MQTT.inputString[iter], 0);
               MQTT.Topic[MQTT.PublishIndex++] = MQTT.inputString[iter];
             }
@@ -945,14 +991,23 @@ void serialEvent()
               MessageSTART += 2;
               MessageID = MQTT.inputString[TopicLength + 2UL] * 256 + MQTT.inputString[TopicLength + 3UL];
             }
+            /*
             if(MQTT.lengthLocal > MESSAGE_BUFFER_LENGTH)
             {
             	disconnect(&MQTT);
             	AutoConnect(&MQTT);
             }
+            */
             for (uint32_t iter = (MessageSTART); iter < (MQTT.lengthLocal); iter++)
             {
               //softLog(MQTT.inputString[iter]);
+            	/* Inside protection */
+            	if(MQTT.index > MESSAGE_BUFFER_LENGTH-1)
+            	{
+            		disconnect(&MQTT);
+            		AutoConnect(&MQTT);
+            		return;
+            	}
               MQTT.Message[MQTT.PublishIndex++] = MQTT.inputString[iter];
             }
             MQTT.Message[MQTT.PublishIndex] = 0;

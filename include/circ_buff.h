@@ -14,7 +14,7 @@
 
 #define	GOVERFLOW	1
 
-#define BUFFER_SIZE		2048
+#define BUFFER_SIZE		2048U
 
 /* 1 buffer = 4kByte (1 place = 2 Byte = 1 Word) =>
  * 4 buffer = 16kByte 	=>

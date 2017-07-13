@@ -166,3 +166,11 @@ void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
 			HAL_UART_Receive_IT(&huart3, &serial_time_value, 1);
 	}
 }
+
+void HAL_TIM_ErrorCallback(TIM_HandleTypeDef *htim)
+{
+	if(htim->Instance == TIM4)
+	{
+		MX_TIM4_Init();
+	}
+}
