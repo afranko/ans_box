@@ -152,15 +152,17 @@ void serialPrint(GSM_MQTT *object, char value)
 /* Use when you want to send a char string */
 void serialWrite(GSM_MQTT *object, char *string)
 {
+	HAL_Delay(210);
 	uint32_t tx_len = strlen(string);
 	char *tmp_string = string;
 	for(uint32_t tx_counter = 0; tx_counter < tx_len; tx_counter++)
 	{
 		if((tx_counter % 1024) == 0)
-			HAL_Delay(200);
-		while(HAL_UART_Transmit(object->gsm_uart, tmp_string, 1, 1) != HAL_OK);
+			HAL_Delay(210);
+		while(HAL_UART_Transmit(object->gsm_uart, tmp_string, 1, 5) != HAL_OK);
 		tmp_string++;
 	}
+	HAL_Delay(200);
 	return;
 
 	/*
@@ -332,8 +334,7 @@ void _tcpInit(GSM_MQTT* object)
           HAL_Delay(2000);
           _sendAT(object, "AT+CIPMUX=0\r\n", 2000);
           _sendAT(object, "AT+CIPMODE=1\r\n", 2000);
-          //_sendAT(object, "AT+CIPCCFG=5,2,1024,1,0,1460,100\r\n", 2000);
-          //_sendAT(object, "AT+IFC=2,2\r\n", 2000); //TODO
+          _sendAT(object, "AT+CIPCCFG=5,1,1024,1,0,1460,50\r\n", 2000);
           if(sendATreply(object, "AT+CGATT?\r\n", ": 1", 4000) != 1)
           {
             _sendAT(object, "AT+CGATT=1\r\n", 2000);
@@ -886,7 +887,7 @@ void serialEvent()
         HAL_Delay(2);
         char Cchar = inChar;
         uint32_t sosCounter = HAL_GetTick();
-        while ( (NextLengthByte == true) && (MQTT.TCP_Flag == true) && (HAL_GetTick() - sosCounter > (MQTT._KeepAliveTimeOut)*1000*config_s.ping_retry))
+        while ( (NextLengthByte == true) && (MQTT.TCP_Flag == true) && (HAL_GetTick() - sosCounter < (MQTT._KeepAliveTimeOut)*1000))
         {
           if (serialAvailable(&MQTT, &uartBuffer))
           {
@@ -991,13 +992,6 @@ void serialEvent()
               MessageSTART += 2;
               MessageID = MQTT.inputString[TopicLength + 2UL] * 256 + MQTT.inputString[TopicLength + 3UL];
             }
-            /*
-            if(MQTT.lengthLocal > MESSAGE_BUFFER_LENGTH)
-            {
-            	disconnect(&MQTT);
-            	AutoConnect(&MQTT);
-            }
-            */
             for (uint32_t iter = (MessageSTART); iter < (MQTT.lengthLocal); iter++)
             {
               //softLog(MQTT.inputString[iter]);

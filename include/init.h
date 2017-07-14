@@ -47,7 +47,7 @@ extern RTC_HandleTypeDef hrtc;
 extern TIM_HandleTypeDef htim2;
 extern TIM_HandleTypeDef htim4;
 
-extern UART_HandleTypeDef huart3;
+extern UART_HandleTypeDef huart2;
 
 void init_settings(void);
 void restart_init(void);
@@ -67,6 +67,6 @@ void MX_RTC_Init(void);
 void MX_SDIO_SD_Init(void);
 void MX_TIM2_Init(void);
 void MX_TIM4_Init(void);
-void MX_USART3_UART_Init(void);
+void MX_USART2_UART_Init(void);
 
 #endif /* __INIT_H */

@@ -26,7 +26,7 @@ void init_settings()
 	  MX_SDIO_SD_Init();
 	  MX_TIM2_Init();
 	  MX_TIM4_Init();
-	  MX_USART3_UART_Init();
+	  MX_USART2_UART_Init();
 	  MX_FATFS_Init();
 
 	  /* Load default settings from SD */
@@ -294,19 +294,19 @@ void MX_TIM4_Init(void)
 
 }
 
-/* USART3 init function */
-void MX_USART3_UART_Init(void)
+/* USART2 init function */
+void MX_USART2_UART_Init(void)
 {
 
-  huart3.Instance = USART3;
-  huart3.Init.BaudRate = 115200;
-  huart3.Init.WordLength = UART_WORDLENGTH_8B;
-  huart3.Init.StopBits = UART_STOPBITS_1;
-  huart3.Init.Parity = UART_PARITY_NONE;
-  huart3.Init.Mode = UART_MODE_TX_RX;
-  huart3.Init.HwFlowCtl = UART_HWCONTROL_NONE;
-  huart3.Init.OverSampling = UART_OVERSAMPLING_16;
-  if (HAL_UART_Init(&huart3) != HAL_OK)
+  huart2.Instance = USART2;
+  huart2.Init.BaudRate = 115200;
+  huart2.Init.WordLength = UART_WORDLENGTH_8B;
+  huart2.Init.StopBits = UART_STOPBITS_1;
+  huart2.Init.Parity = UART_PARITY_NONE;
+  huart2.Init.Mode = UART_MODE_TX_RX;
+  huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart2.Init.OverSampling = UART_OVERSAMPLING_16;
+  if (HAL_UART_Init(&huart2) != HAL_OK)
   {
 	  config_status = HAL_UART_ERROR;
   }
@@ -322,6 +322,7 @@ void MX_GPIO_Init(void)
   __HAL_RCC_GPIOH_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
   __HAL_RCC_GPIOD_CLK_ENABLE();
+  __HAL_RCC_GPIOA_CLK_ENABLE();
 
   /* Init GPIO I/O pins */
 
@@ -521,76 +522,76 @@ void setRTC(void)
 	strcat(s_prov, "\"\r\n");
 
 	init_miniBuff(&serial_time_buff);
-	HAL_UART_Receive_IT(&huart3, &serial_time_value, 1);
+	HAL_UART_Receive_IT(&huart2, &serial_time_value, 1);
 
-	HAL_UART_Transmit(&huart3, "AT\r\n", strlen("AT\r\n"), HAL_MAX_DELAY);
+	HAL_UART_Transmit(&huart2, "AT\r\n", strlen("AT\r\n"), HAL_MAX_DELAY);
 	if(check_string("") != true)
 	{
 		return;
 	}
 
-	HAL_UART_Transmit(&huart3, "AT\r\n", strlen("AT\r\n"), HAL_MAX_DELAY);
-	if(check_string("OK") != true)
-	{
-		return;
-	}
-
-	HAL_UART_Transmit(&huart3, "ATE1\r\n", strlen("ATE0\r\n"), HAL_MAX_DELAY);
+	HAL_UART_Transmit(&huart2, "AT\r\n", strlen("AT\r\n"), HAL_MAX_DELAY);
 	if(check_string("") != true)
 	{
 		return;
 	}
 
-
-	HAL_UART_Transmit(&huart3, "AT+CREG?\r\n", strlen("AT+CREG?\r\n"), HAL_MAX_DELAY);
-
-	HAL_UART_Transmit(&huart3, "AT+CIPMUX=0\r\n", strlen("AT+CIPMUX=0\r\n"), HAL_MAX_DELAY);
-	if(check_string("") != true)
-	{
-		return;
-	}
-
-	HAL_UART_Transmit(&huart3, "AT+CIPMODE=1\r\n", strlen("AT+CIPMODE=1\r\n"), HAL_MAX_DELAY);
-	if(check_string("") != true)
-	{
-		return;
-	}
-
-	HAL_UART_Transmit(&huart3, "AT+CGATT=1\r\n", strlen("AT+CGATT=1\r\n"), HAL_MAX_DELAY);
-	if(check_string("") != true)
-	{
-		return;
-	}
-
-	HAL_UART_Transmit(&huart3, "AT+CIPSTATUS\r\n", strlen("AT+CIPSTATUS\r\n"), HAL_MAX_DELAY);
-
-
-	HAL_UART_Transmit(&huart3, s_prov, strlen(s_prov), HAL_MAX_DELAY);
-	if(check_string("") != true)
-	{
-		return;
-	}
-
-	HAL_UART_Transmit(&huart3, "AT+CIICR\r\n", strlen("AT+CIICR\r\n"), HAL_MAX_DELAY);
-	if(check_string("") != true)
-	{
-		return;
-	}
-
-	HAL_UART_Transmit(&huart3, "AT+CIFSR\r\n", strlen("AT+CIFSR\r\n"), HAL_MAX_DELAY);
+	HAL_UART_Transmit(&huart2, "ATE1\r\n", strlen("ATE0\r\n"), HAL_MAX_DELAY);
 	if(check_string("") != true)
 	{
 		return;
 	}
 
 
-	HAL_UART_Transmit(&huart3, s_string, strlen(s_string), HAL_MAX_DELAY);
+	HAL_UART_Transmit(&huart2, "AT+CREG?\r\n", strlen("AT+CREG?\r\n"), HAL_MAX_DELAY);
+
+	HAL_UART_Transmit(&huart2, "AT+CIPMUX=0\r\n", strlen("AT+CIPMUX=0\r\n"), HAL_MAX_DELAY);
+	if(check_string("") != true)
+	{
+		return;
+	}
+
+	HAL_UART_Transmit(&huart2, "AT+CIPMODE=1\r\n", strlen("AT+CIPMODE=1\r\n"), HAL_MAX_DELAY);
+	if(check_string("") != true)
+	{
+		return;
+	}
+
+	HAL_UART_Transmit(&huart2, "AT+CGATT=1\r\n", strlen("AT+CGATT=1\r\n"), HAL_MAX_DELAY);
+	if(check_string("") != true)
+	{
+		return;
+	}
+
+	HAL_UART_Transmit(&huart2, "AT+CIPSTATUS\r\n", strlen("AT+CIPSTATUS\r\n"), HAL_MAX_DELAY);
+
+
+	HAL_UART_Transmit(&huart2, s_prov, strlen(s_prov), HAL_MAX_DELAY);
+	if(check_string("") != true)
+	{
+		return;
+	}
+
+	HAL_UART_Transmit(&huart2, "AT+CIICR\r\n", strlen("AT+CIICR\r\n"), HAL_MAX_DELAY);
+	if(check_string("") != true)
+	{
+		return;
+	}
+
+	HAL_UART_Transmit(&huart2, "AT+CIFSR\r\n", strlen("AT+CIFSR\r\n"), HAL_MAX_DELAY);
+	if(check_string("") != true)
+	{
+		return;
+	}
+
+
+	HAL_UART_Transmit(&huart2, s_string, strlen(s_string), HAL_MAX_DELAY);
 	if(check_string("CONNECT") != true)
 	{
 		return;
 	}
 
-	HAL_UART_Transmit(&huart3, http_head_msg, strlen(http_head_msg), HAL_MAX_DELAY);
+	HAL_UART_Transmit(&huart2, http_head_msg, strlen(http_head_msg), HAL_MAX_DELAY);
 	the_tick = HAL_GetTick();
 	while((HAL_GetTick() - the_tick) < 30000);
 

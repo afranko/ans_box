@@ -10,7 +10,7 @@ RTC_HandleTypeDef hrtc;
 TIM_HandleTypeDef htim2;
 TIM_HandleTypeDef htim4;
 
-UART_HandleTypeDef huart3;
+UART_HandleTypeDef huart2;
 
 Settings_HandleTypeDef config_s;
 
@@ -56,7 +56,7 @@ int main(void)
 	init_cBuff(&gBuffer2);
 	init_cBuff(&gBuffer3);
 
- 	CommInit(&huart3, 60);
+ 	CommInit(&huart2, 60);
 
  	HAL_ADC_Start_IT(&hadc3);
 
@@ -114,7 +114,7 @@ int main(void)
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
-	if(huart->Instance == USART3)
+	if(huart->Instance == USART2)
 	{
 		if(timeFlag == true)
 		{
@@ -123,7 +123,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 		else
 		{
 			push_miniBuff(&serial_time_buff, serial_time_value);
-			HAL_UART_Receive_IT(&huart3, &serial_time_value, 1);
+			HAL_UART_Receive_IT(&huart2, &serial_time_value, 1);
 		}
 	}
 }
@@ -160,17 +160,9 @@ void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
 {
 	if(huart->ErrorCode)
 	{
-		if(timeFlag == true)
+		if(timeFlag)
 			HAL_UART_Receive_IT(huart, &uartBuffer.temp_val, sizeof(char));
 		else
-			HAL_UART_Receive_IT(&huart3, &serial_time_value, 1);
-	}
-}
-
-void HAL_TIM_ErrorCallback(TIM_HandleTypeDef *htim)
-{
-	if(htim->Instance == TIM4)
-	{
-		MX_TIM4_Init();
+			HAL_UART_Receive_IT(&huart2, &serial_time_value, 1);
 	}
 }
