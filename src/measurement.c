@@ -4,6 +4,7 @@
  */
 
 #include "measurement.h"
+#include <math.h>
 
 /* Counter for ADC's channels */
 uint8_t bcounter = 0;
@@ -368,14 +369,82 @@ void getTimeStamp(RTC_HandleTypeDef *hrtc, char *TimeString)
 	return;
 }
 
-void envMeas(RTC_HandleTypeDef *hrtc)
+void envMeas(RTC_HandleTypeDef *hrtc, I2C_HandleTypeDef *hi2c, SPI_HandleTypeDef *hspi)
 {
-	//Meas missing TODO
+	float humidity, amb_temperature, rail_temp;
+	readTelaire(hi2c, &humidity, &amb_temperature);
+	readPT(hspi, &rail_temp);
+
 	char tStamp[20];
 	getTimeStamp(hrtc, tStamp);
-	//sendEnvironmentMessage(config_s.client_name, tStamp);
+	sendEnvironmentMessage(config_s.client_name, tStamp, rail_temp, amb_temperature, humidity);
 
 	return;
+}
+
+void readTelaire(I2C_HandleTypeDef *hi2c, float *humidity, float *temperature)
+{
+	uint8_t received_data[4];
+	HAL_I2C_Master_Receive(hi2c, 0x28 << 1, received_data, 4, HAL_MAX_DELAY);
+
+	if((received_data[0] & 0xC0U)!= 0)
+		return;
+
+	*humidity = (float) (((received_data[0] & 0x3FU) << 8) | received_data[1]) * 100 / 16384;
+	*temperature = (float) ((received_data[2] << 6) | ((received_data[3] & 0xFCU) >> 2)) * 165 / 16384 - 40;
+
+	return;
+}
+
+void readPT(SPI_HandleTypeDef *hspi, float *rtemp)
+{
+
+	uint8_t w_add = 0x80U, r_add = 0x00U, bias_on = 0x81U, conv_start = 0xA1U, bias_off = 0x03U;
+	uint8_t received_data[8];
+	uint16_t raw_adc_code;
+	float rtd;
+
+	/* Turn BIAS ON */
+	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_RESET);
+	HAL_Delay(10); //MAX STARTUP TIME TIME
+	HAL_SPI_Transmit(hspi, &w_add, 1, HAL_MAX_DELAY);
+	HAL_SPI_Transmit(hspi, &bias_on, 1, HAL_MAX_DELAY);
+	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_SET);
+	HAL_Delay(10); //MAX STARTUP TIME TIME
+
+	/* START CONV */
+	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_RESET);
+	HAL_Delay(10); //MAX STARTUP TIME TIME
+	HAL_SPI_Transmit(hspi, &w_add, 1, HAL_MAX_DELAY);
+	HAL_SPI_Transmit(hspi, &conv_start, 1, HAL_MAX_DELAY);
+	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_SET);
+	HAL_Delay(63); //MAX CONV TIME
+
+	/* Read Data */
+	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_RESET);
+	HAL_Delay(10); //MAX STARTUP TIME TIME
+	HAL_SPI_Transmit(hspi, &r_add, 1, HAL_MAX_DELAY);
+
+	for(uint8_t i = 0; i < 8; i++)
+		HAL_SPI_Receive(hspi, &received_data[i], 1, HAL_MAX_DELAY);
+
+	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_SET);
+	HAL_Delay(1);
+
+	/* Turn BIAS OFF */
+	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_RESET);
+	HAL_Delay(10); //MAX STARTUP TIME TIME
+	HAL_SPI_Transmit(hspi, &w_add, 1, HAL_MAX_DELAY);
+	HAL_SPI_Transmit(hspi, &bias_off, 1, HAL_MAX_DELAY);
+	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_SET);
+
+	/* Conversation */
+	raw_adc_code = (uint16_t) (received_data[1] << 7) | ((received_data[2] & 0xFE) >> 1);
+	rtd = (float) raw_adc_code / 32768 * 430;
+
+	*rtemp = rtd*2.5707-257.07;
+	return;
+
 }
 
 void movMeas(RTC_HandleTypeDef *hrtc)

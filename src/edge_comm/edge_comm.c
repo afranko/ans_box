@@ -40,7 +40,7 @@ void CommInit(UART_HandleTypeDef *huart, unsigned long KeepAlive)
  *
  */
 
-void sendEnvironmentMessage(char *meas_loc, char* timeStamp)
+void sendEnvironmentMessage(char *meas_loc, char* timeStamp, float railTemp, float ambTemp, float hum)
 {
 	/* Init JSON Object */
 	JSON_Value *root_value = json_value_init_object();
@@ -71,7 +71,7 @@ void sendEnvironmentMessage(char *meas_loc, char* timeStamp)
 		    JSON_Value *arrsub_val_1 = json_value_init_object();
 		    JSON_Object *arrsub_o_1 = json_value_get_object(arrsub_val_1);
 
-		    json_object_dotset_number(arrsub_o_1, "hasValue.value", 20);
+		    json_object_dotset_number(arrsub_o_1, "hasValue.value", ambTemp);
 		    json_object_dotset_string(arrsub_o_1, "uuid.value", at_eevd_uuid);
 
 		    json_array_append_value(arrsub_obj, arrsub_val_1);
@@ -80,7 +80,7 @@ void sendEnvironmentMessage(char *meas_loc, char* timeStamp)
 		    JSON_Value *arrsub_val_2 = json_value_init_object();
 		    JSON_Object *arrsub_o_2 = json_value_get_object(arrsub_val_2);
 
-		    json_object_dotset_number(arrsub_o_2, "hasValue.value", 125);
+		    json_object_dotset_number(arrsub_o_2, "hasValue.value", hum);
 		    json_object_dotset_string(arrsub_o_2, "uuid.value", h_eevd_uuid);
 		    json_array_append_value(arrsub_obj, arrsub_val_2);
 
@@ -88,7 +88,7 @@ void sendEnvironmentMessage(char *meas_loc, char* timeStamp)
 		    JSON_Value *arrsub_val_3 = json_value_init_object();
 		    JSON_Object *arrsub_o_3 = json_value_get_object(arrsub_val_3);
 
-		    json_object_dotset_number(arrsub_o_3, "hasValue.value", 20);
+		    json_object_dotset_number(arrsub_o_3, "hasValue.value", railTemp);
 		    json_object_dotset_string(arrsub_o_3, "uuid.value", rt_eevd_uuid);
 		    json_array_append_value(arrsub_obj, arrsub_val_3);
 

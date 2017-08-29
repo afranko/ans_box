@@ -24,6 +24,7 @@ void init_settings()
 	  MX_I2C2_Init();
 	  MX_RTC_Init();
 	  MX_SDIO_SD_Init();
+	  MX_SPI1_Init();
 	  MX_TIM2_Init();
 	  MX_TIM4_Init();
 	  MX_USART2_UART_Init();
@@ -222,6 +223,27 @@ void MX_SDIO_SD_Init(void)
   hsd.Init.ClockDiv = 0;
 }
 
+/* SPI1 init function */
+void MX_SPI1_Init(void)
+{
+	hspi1.Instance = SPI1;
+	hspi1.Init.Mode = SPI_MODE_MASTER;
+	hspi1.Init.Direction = SPI_DIRECTION_2LINES;
+	hspi1.Init.DataSize = SPI_DATASIZE_8BIT;
+	hspi1.Init.CLKPolarity = SPI_POLARITY_HIGH;
+	hspi1.Init.CLKPhase = SPI_PHASE_2EDGE;
+	hspi1.Init.NSS = SPI_NSS_SOFT;
+	hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_64;
+	hspi1.Init.FirstBit = SPI_FIRSTBIT_MSB;
+	hspi1.Init.TIMode = SPI_TIMODE_DISABLED;
+	hspi1.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
+
+	if(HAL_SPI_Init(&hspi1) != HAL_OK)
+	{
+		config_status = HAL_SPI_ERROR;
+	}
+}
+
 /* TIM2 init function */
 void MX_TIM2_Init(void)
 {
@@ -339,12 +361,12 @@ void MX_GPIO_Init(void)
 
   /* Modem EN\ pin init */
 
-  GPIO_InitStruct.Pin = GPIO_PIN_15;
+  GPIO_InitStruct.Pin = GPIO_PIN_10;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_MEDIUM;
   GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(GPIOF, &GPIO_InitStruct);
-  HAL_GPIO_WritePin(GPIOF, GPIO_PIN_15, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_15, GPIO_PIN_SET);
 
 }
 
@@ -489,6 +511,20 @@ void load_config_sd()
 	{
 		config_status = CONFIG_CLOSE_ERROR;
 	}
+}
+
+void setMAX(SPI_HandleTypeDef *hspi)
+{
+	uint8_t config_reg = 0x80U;
+	uint8_t config_command = 0x03U;
+
+	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_RESET);
+	HAL_Delay(10);
+	HAL_SPI_Transmit(hspi, &config_reg, 1, HAL_MAX_DELAY);
+	HAL_SPI_Transmit(hspi, &config_command, 1, HAL_MAX_DELAY);
+	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_SET);
+
+	return;
 }
 
 void checkRTC(void)

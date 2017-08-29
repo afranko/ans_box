@@ -8,6 +8,9 @@
 
 #include "circ_buff.h"
 
+#define RTD_A 3.9083e-3
+#define RTD_B -5.775e-7
+
 typedef struct measurement_flag_block_t
 {
 	/* Negative offset */
@@ -60,7 +63,9 @@ void meas_datamove(void);
 void init_meas_flag_block(meas_flag_block *flagBlock);
 void intoa_conv(uint16_t data, char *ibuffer);
 void getTimeStamp(RTC_HandleTypeDef *hrtc, char *TimeString);
-void envMeas(RTC_HandleTypeDef *hrtc);
+void envMeas(RTC_HandleTypeDef *hrtc, I2C_HandleTypeDef *hi2c, SPI_HandleTypeDef *hspi);
+void readTelaire(I2C_HandleTypeDef *hi2c, float *humidity, float *temperature);
+void readPT(SPI_HandleTypeDef *hspi, float *rtemp);
 void movMeas(RTC_HandleTypeDef *hrtc);
 
 #endif /* MEASUREMENT_H_ */

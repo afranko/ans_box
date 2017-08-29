@@ -30,6 +30,7 @@ src/stm32f4xx_hal_msp.d: ../src/stm32f4xx_hal_msp.c \
  ../system/include/stm32f4-hal/stm32f4xx_hal_rtc_ex.h \
  ../system/include/stm32f4-hal/stm32f4xx_hal_sd.h \
  ../system/include/stm32f4-hal/stm32f4xx_ll_sdmmc.h \
+ ../system/include/stm32f4-hal/stm32f4xx_hal_spi.h \
  ../system/include/stm32f4-hal/stm32f4xx_hal_tim.h \
  ../system/include/stm32f4-hal/stm32f4xx_hal_tim_ex.h \
  ../system/include/stm32f4-hal/stm32f4xx_hal_uart.h \
@@ -98,6 +99,8 @@ src/stm32f4xx_hal_msp.d: ../src/stm32f4xx_hal_msp.c \
 ../system/include/stm32f4-hal/stm32f4xx_hal_sd.h:
 
 ../system/include/stm32f4-hal/stm32f4xx_ll_sdmmc.h:
+
+../system/include/stm32f4-hal/stm32f4xx_hal_spi.h:
 
 ../system/include/stm32f4-hal/stm32f4xx_hal_tim.h:
 

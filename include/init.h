@@ -28,12 +28,13 @@ typedef enum{
 	HAL_UART_ERROR			= 5,
 	HAL_RTC_ERROR			= 6,
 	HAL_TIM_ERROR			= 7,
-	CONFIG_READ_ERROR		= 8,
-	NO_CONFIG_ERROR			= 9,
-	INVALID_SETTINGS_ERROR 	= 10,
-	RTC_NOT_SET				= 11,
-	CONFIG_WRITE_ERROR		= 12,
-	CONFIG_CLOSE_ERROR		= 13
+	HAL_SPI_ERROR			= 8,
+	CONFIG_READ_ERROR		= 9,
+	NO_CONFIG_ERROR			= 10,
+	INVALID_SETTINGS_ERROR 	= 11,
+	RTC_NOT_SET				= 12,
+	CONFIG_WRITE_ERROR		= 13,
+	CONFIG_CLOSE_ERROR		= 14
 }InitStateCode;
 
 extern Settings_HandleTypeDef config_s;
@@ -41,6 +42,8 @@ extern Settings_HandleTypeDef config_s;
 extern ADC_HandleTypeDef hadc3;
 
 extern I2C_HandleTypeDef hi2c2;
+
+extern SPI_HandleTypeDef hspi1;
 
 extern RTC_HandleTypeDef hrtc;
 
@@ -58,6 +61,7 @@ void setRTC(void);
 void checkRTC(void);
 void getSerialTime(void);
 bool check_string(char *reply);
+void setMAX(SPI_HandleTypeDef *hspi);
 
 void SystemClock_Config(void);
 void MX_GPIO_Init(void);
@@ -65,6 +69,7 @@ void MX_ADC3_Init(void);
 void MX_I2C2_Init(void);
 void MX_RTC_Init(void);
 void MX_SDIO_SD_Init(void);
+void MX_SPI1_Init(void);
 void MX_TIM2_Init(void);
 void MX_TIM4_Init(void);
 void MX_USART2_UART_Init(void);

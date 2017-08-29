@@ -5,6 +5,8 @@ ADC_HandleTypeDef hadc3;
 
 I2C_HandleTypeDef hi2c2;
 
+SPI_HandleTypeDef hspi1;
+
 RTC_HandleTypeDef hrtc;
 
 TIM_HandleTypeDef htim2;
@@ -56,6 +58,9 @@ int main(void)
 	init_cBuff(&gBuffer2);
 	init_cBuff(&gBuffer3);
 
+	/* Set external sensor*/
+	setMAX(&hspi1);
+
  	CommInit(&huart2, 60);
 
  	HAL_ADC_Start_IT(&hadc3);
@@ -100,7 +105,7 @@ int main(void)
 		/* Environment Measurement */
 		if(envMeasFlag == true)
 		{
-			envMeas(&hrtc);
+			envMeas(&hrtc, &hi2c2, &hspi1);
 			envMeasFlag = false;
 		}
 
