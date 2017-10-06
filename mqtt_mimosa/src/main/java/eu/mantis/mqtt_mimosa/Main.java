@@ -1,5 +1,6 @@
 package eu.mantis.mqtt_mimosa;
 
+import com.google.gson.JsonSyntaxException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -20,10 +21,11 @@ import org.eclipse.paho.client.mqttv3.util.Debug;
 class Main implements MqttCallback {
 
   private MqttClient client;
-  private Debug debug;
   private static final String TIME_DATA_URL = "http://mantis1.tmit.bme.hu:8081/mirei/time_data";
   private static final String NUM_DATA_URL = "http://mantis1.tmit.bme.hu:8081/mirei/num_data";
   private static final String MQTT_BROKER_URL = "tcp://mantis1.tmit.bme.hu:1883";
+  private final Object connLock = new Object();
+  private boolean connLockNotified = false;
 
   private Main() {
   }
@@ -39,9 +41,10 @@ class Main implements MqttCallback {
       client.setCallback(this);
       client.subscribe("/environment");
       client.subscribe("/movement");
-      //client.subscribe("/warning");
-      //client.subscribe("#"); subscribe to all topics, and filter with switch/case in messageArrived()
-      debug = client.getDebug();
+      client.setTimeToWait(-1);
+      // client.subscribe("/warning");
+      // alternatively client.subscribe("#"); subscribe to all topics, and filter with switch/case in messageArrived()
+
       // message can be sent here to a topic
     } catch (MqttException e) {
       e.printStackTrace();
@@ -51,9 +54,6 @@ class Main implements MqttCallback {
 
   @Override
   public void connectionLost(Throwable arg0) {
-    debug.dumpBaseDebug();
-    debug.dumpClientDebug();
-    debug.dumpSystemProperties();
     System.out.println("Connection lost: " + arg0.getMessage());
     try {
       client.connect();
@@ -85,10 +85,21 @@ class Main implements MqttCallback {
     } else {
       sendEnviromentMeasToMimosa(payload);
     }
+
+    /*Thread newMessage = new Thread(() -> {
+
+    });
+    newMessage.start();*/
   }
 
   private void sendMovementToMimosa(String payload) {
-    MovementEvent event = Utility.fromJson(payload, MovementEvent.class);
+    MovementEvent event = null;
+    try {
+      event = Utility.fromJson(payload, MovementEvent.class);
+    } catch (JsonSyntaxException e) {
+      System.out.println("JSON parser FAILED to parse Movement event.");
+      return;
+    }
 
     String measLocSite = event.getHasLocation().getMeasLocId().getValue();
 
@@ -149,7 +160,13 @@ class Main implements MqttCallback {
   }
 
   private void sendEnviromentMeasToMimosa(String payload) {
-    EnvironmentMeas measurement = Utility.fromJson(payload, EnvironmentMeas.class);
+    EnvironmentMeas measurement;
+    try {
+      measurement = Utility.fromJson(payload, EnvironmentMeas.class);
+    } catch (JsonSyntaxException e) {
+      System.out.println("JSON parser FAILED to parse Environment measurement.");
+      return;
+    }
 
     String measLocSite = measurement.getHasLocation().getMeasLocId().getValue();
 

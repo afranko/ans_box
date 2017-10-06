@@ -13,10 +13,10 @@ public class ErrorMessage {
   private String message;
   @SerializedName("error_code")
   @Expose
-  private Integer errorCode;
+  private Integer error_code;
   @SerializedName("more_info")
   @Expose
-  private String moreInfo;
+  private String more_info;
 
   /**
    * No args constructor for use in serialization
@@ -24,11 +24,11 @@ public class ErrorMessage {
   public ErrorMessage() {
   }
 
-  public ErrorMessage(Integer status, String message, Integer errorCode, String moreInfo) {
+  public ErrorMessage(Integer status, String message, Integer error_code, String more_info) {
     this.status = status;
     this.message = message;
-    this.errorCode = errorCode;
-    this.moreInfo = moreInfo;
+    this.error_code = error_code;
+    this.more_info = more_info;
   }
 
   public Integer getStatus() {
@@ -47,20 +47,20 @@ public class ErrorMessage {
     this.message = message;
   }
 
-  public Integer getErrorCode() {
-    return errorCode;
+  public Integer getError_code() {
+    return error_code;
   }
 
-  public void setErrorCode(Integer errorCode) {
-    this.errorCode = errorCode;
+  public void setError_code(Integer error_code) {
+    this.error_code = error_code;
   }
 
-  public String getMoreInfo() {
-    return moreInfo;
+  public String getMore_info() {
+    return more_info;
   }
 
-  public void setMoreInfo(String moreInfo) {
-    this.moreInfo = moreInfo;
+  public void setMore_info(String more_info) {
+    this.more_info = more_info;
   }
 
 }

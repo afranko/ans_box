@@ -69,20 +69,25 @@ final class Utility {
     }
 
     if (!(response.getStatusInfo().getFamily() == Family.SUCCESSFUL)) {
-      if (response.getStatus() == 409) {
-        System.out.println("This measurement is already saved in the MIMOSA database!");
-      } else {
-        ErrorMessage errorMessage;
-        try {
-          errorMessage = response.readEntity(ErrorMessage.class);
-        } catch (RuntimeException e) {
-          throw new RuntimeException("Unknown error occurred at " + URI);
-        }
-        if (errorMessage == null) {
-          throw new RuntimeException("Unknown error occurred at " + URI);
-        } else {
-          System.out.println("Error occurred during the request at " + URI);
-          System.out.println(gson.toJson(errorMessage));
+      ErrorMessage errorMessage;
+      try {
+        errorMessage = response.readEntity(ErrorMessage.class);
+      } catch (RuntimeException e) {
+        throw new RuntimeException("Unknown error occurred at " + URI);
+      }
+      if (errorMessage == null) {
+        throw new RuntimeException("Unknown error occurred at " + URI);
+      }
+      else {
+        System.out.println("Error occurred during the request at " + URI);
+        System.out.println(gson.toJson(errorMessage));
+        if (response.getStatus() == 409) {
+          if(errorMessage.getMore_info().equals("sql error when trying to delete")){
+            System.out.println("This measurement is already saved in the MIMOSA database!");
+          }
+          else if(errorMessage.getMore_info().equals("sql error when trying to insert")){
+            System.out.println("New Measurement Location! Needs to be added to the site and meas_location tables first!\n\n");
+          }
         }
       }
     } else {
