@@ -1,22 +1,18 @@
 package eu.mantis.mqtt_mimosa;
 
 import com.google.gson.JsonSyntaxException;
-import java.util.ArrayList;
-import java.util.List;
-
-import java.util.concurrent.TimeUnit;
-import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
-import org.eclipse.paho.client.mqttv3.MqttCallback;
-import org.eclipse.paho.client.mqttv3.MqttClient;
-import org.eclipse.paho.client.mqttv3.MqttException;
-import org.eclipse.paho.client.mqttv3.MqttMessage;
-
 import eu.mantis.mqtt_mimosa.mimosa_messages.NumData;
 import eu.mantis.mqtt_mimosa.mimosa_messages.TimeData;
 import eu.mantis.mqtt_mimosa.mqtt_messages.EnvironmentMeas;
 import eu.mantis.mqtt_mimosa.mqtt_messages.HasValueContainer;
 import eu.mantis.mqtt_mimosa.mqtt_messages.MovementEvent;
-import org.eclipse.paho.client.mqttv3.util.Debug;
+import java.util.ArrayList;
+import java.util.List;
+import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
+import org.eclipse.paho.client.mqttv3.MqttCallback;
+import org.eclipse.paho.client.mqttv3.MqttClient;
+import org.eclipse.paho.client.mqttv3.MqttException;
+import org.eclipse.paho.client.mqttv3.MqttMessage;
 
 class Main implements MqttCallback {
 
@@ -24,8 +20,6 @@ class Main implements MqttCallback {
   private static final String TIME_DATA_URL = "http://mantis1.tmit.bme.hu:8081/mirei/time_data";
   private static final String NUM_DATA_URL = "http://mantis1.tmit.bme.hu:8081/mirei/num_data";
   private static final String MQTT_BROKER_URL = "tcp://mantis1.tmit.bme.hu:1883";
-  private final Object connLock = new Object();
-  private boolean connLockNotified = false;
 
   private Main() {
   }
@@ -93,7 +87,7 @@ class Main implements MqttCallback {
   }
 
   private void sendMovementToMimosa(String payload) {
-    MovementEvent event = null;
+    MovementEvent event;
     try {
       event = Utility.fromJson(payload, MovementEvent.class);
     } catch (JsonSyntaxException e) {
