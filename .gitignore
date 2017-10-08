@@ -1,0 +1,8 @@
+# Created by .ignore support plugin (hsz.mobi)
+/.idea/
+/mqtt_mimosa/.idea/
+/mqtt_mimosa/.settings/
+/mqtt_mimosa/mqtt_mimosa.iml
+/mqtt_mimosa/.project
+/mqtt_mimosa/.classpath
+/mqtt_mimosa/target/
