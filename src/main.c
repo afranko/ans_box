@@ -65,10 +65,11 @@ int main(void)
 
  	HAL_ADC_Start_IT(&hadc3);
 
- 	while(MQTT.MQTT_Flag != true) //TODO - led égjen/vagy ne
+ 	while(MQTT.MQTT_Flag != true)
  	{
  		MQTTProcessing();
  	}
+
 
 	/* Waiting for the first conversation */
 	while(bcounter == 0);

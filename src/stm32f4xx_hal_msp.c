@@ -469,6 +469,11 @@ void HAL_UART_MspDeInit(UART_HandleTypeDef* huart)
     PB10     ------> USART3_TX
     PB11     ------> USART3_RX 
     */
+
+    /**USART2 GPIO Configuration
+    PD5     ------> USART2_TX - Port D 8 - Olimex
+    PD6     ------> USART2_RX - Port D 9 - Olimex
+     */
     HAL_GPIO_DeInit(GPIOD, GPIO_PIN_5|GPIO_PIN_6);
 
     /* Peripheral interrupt DeInit*/

@@ -33,6 +33,9 @@ void init_settings()
 	  /* Load default settings from SD */
 	  load_config_sd();
 
+	  /* Check modem PWR */
+	  modemPWR();
+
 	  /* Check if RTC is set */
 	  checkRTC();
 
@@ -347,11 +350,9 @@ void MX_GPIO_Init(void)
   __HAL_RCC_GPIOA_CLK_ENABLE();
 
   /* Init GPIO I/O pins */
-
   GPIO_InitTypeDef GPIO_InitStruct;
 
   /* H407 USER_LED Init */
-
   GPIO_InitStruct.Pin = GPIO_PIN_13;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Speed = GPIO_SPEED_FAST;
@@ -359,14 +360,37 @@ void MX_GPIO_Init(void)
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
   HAL_GPIO_WritePin(GPIOC,GPIO_PIN_13, GPIO_PIN_SET);
 
-  /* Modem EN\ pin init */
+  /* Extra LED init */
+  /* //TODO
+  GPIO_InitStruct.Pin = GPIO_PIN_13;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FAST;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+  HAL_GPIO_WritePin(GPIOC,GPIO_PIN_13, GPIO_PIN_SET);
+  */
 
-  GPIO_InitStruct.Pin = GPIO_PIN_10;
+  /* Modem EN\ pin init */
+  GPIO_InitStruct.Pin = GPIO_PIN_7;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_MEDIUM;
   GPIO_InitStruct.Pull = GPIO_PULLUP;
-  HAL_GPIO_Init(GPIOF, &GPIO_InitStruct);
-  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_15, GPIO_PIN_SET);
+  HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
+  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_7, GPIO_PIN_SET);
+
+  /* Modem key pin init */
+  GPIO_InitStruct.Pin = GPIO_PIN_8;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
+  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_8, GPIO_PIN_SET);
+
+  /* Modem PS pin init */
+  GPIO_InitStruct.Pin = GPIO_PIN_9;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
 
 }
 
@@ -384,9 +408,6 @@ void restart_init()
 		HAL_GPIO_WritePin(GPIOC,GPIO_PIN_13, GPIO_PIN_SET);
 		HAL_Delay(500);
 	}
-
-	//TODO villogáskódok??
-
 	HAL_NVIC_SystemReset();
 }
 
@@ -511,6 +532,21 @@ void load_config_sd()
 	{
 		config_status = CONFIG_CLOSE_ERROR;
 	}
+}
+
+void modemPWR(void)
+{
+	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_8, GPIO_PIN_RESET);
+	HAL_Delay(5000);
+
+	while(HAL_GPIO_ReadPin(GPIOD, GPIO_PIN_9) != GPIO_PIN_SET)
+	{
+		HAL_GPIO_WritePin(GPIOD, GPIO_PIN_8, GPIO_PIN_SET);
+		HAL_Delay(3000);
+		HAL_GPIO_WritePin(GPIOD, GPIO_PIN_8, GPIO_PIN_RESET);
+		HAL_Delay(3000);
+	}
+	return;
 }
 
 void setMAX(SPI_HandleTypeDef *hspi)

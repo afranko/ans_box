@@ -291,13 +291,6 @@ char sendATreply(GSM_MQTT *object, char *command, char *replystr, unsigned long 
 
 void _tcpInit(GSM_MQTT* object)
 {
-  if(object->fckpCounter > 5)
-  {
-	  object->fckpCounter = 0;
-	  HAL_GPIO_WritePin(GPIOF, GPIO_PIN_15, GPIO_PIN_RESET);
-	  HAL_Delay(1500);
-	  HAL_GPIO_WritePin(GPIOF, GPIO_PIN_15, GPIO_PIN_SET);
-  }
   switch (object->modemStatus)
   {
     case 0:
@@ -611,6 +604,7 @@ void unsubscribe(GSM_MQTT *object, char DUP, unsigned int MessageID, char *SubTo
 
 void disconnect(GSM_MQTT *object)
 {
+  //HAL_GPIO_WritePin(GPIOC,GPIO_PIN_13, GPIO_PIN_SET); //TODO
   serialPrint(object, DISCONNECT * 16);
   _sendLength(object, 0);
   object->pingFlag = false;
@@ -866,6 +860,7 @@ void serialEvent()
         {
           GSM_Response = 4;
           MQTT.TCP_Flag = false;
+          //TODO
           MQTT.MQTT_Flag = false;
         }
         MQTT.index = 0;
@@ -907,6 +902,7 @@ void serialEvent()
               MQTT.inputString[MQTT.index++] = Cchar;
               MQTT.inputString[MQTT.index++] = inChar;
               MQTT.TCP_Flag = false;
+              //TODO
               MQTT.MQTT_Flag = false;
               MQTT.pingFlag = false;
               //softLogLn("Disconnecting");
@@ -958,6 +954,7 @@ void serialEvent()
             if (MQTT.ConnectionAcknowledgement == 0)
             {
               MQTT.MQTT_Flag = true;
+              //HAL_GPIO_WritePin(GPIOC,GPIO_PIN_13, GPIO_PIN_RESET); //TODO
               OnConnect(&MQTT);
             }
             printConnectAck(MQTT.ConnectionAcknowledgement);
@@ -1040,6 +1037,7 @@ void serialEvent()
           else if (ReceivedMessageType == PINGREQ)
           {
             MQTT.TCP_Flag = false;
+            //HAL_GPIO_WritePin(GPIOC,GPIO_PIN_13, GPIO_PIN_SET); //TODO
             MQTT.pingFlag = false;
             //softLogLn("Disconnecting");
             sendATreply(&MQTT, "AT+CIPSHUT\r\n", ".", 4000) ;

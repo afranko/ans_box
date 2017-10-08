@@ -62,6 +62,7 @@ void checkRTC(void);
 void getSerialTime(void);
 bool check_string(char *reply);
 void setMAX(SPI_HandleTypeDef *hspi);
+void modemPWR(void);
 
 void SystemClock_Config(void);
 void MX_GPIO_Init(void);

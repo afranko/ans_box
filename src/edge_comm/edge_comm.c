@@ -112,6 +112,8 @@ void sendEnvironmentMessage(char *meas_loc, char* timeStamp, float railTemp, flo
 		    json_object_dotset_value(root_object, "hasTimestamp.hasUTCDateTime", times2val);
 
 		serialized_string = json_serialize_to_string_pretty(root_value);
+		char ho[1200];
+		strcpy(ho, serialized_string);
 
 		/* Publish JSON */
 		if(available(&MQTT))
