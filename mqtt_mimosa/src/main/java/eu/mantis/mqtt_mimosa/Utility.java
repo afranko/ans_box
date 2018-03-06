@@ -1,5 +1,6 @@
 package eu.mantis.mqtt_mimosa;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import eu.mantis.mqtt_mimosa.mimosa_messages.ErrorMessage;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -10,6 +11,8 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Base64;
 import java.util.Date;
 
@@ -152,12 +155,9 @@ final class Utility {
   }
 
   static String fixDateFormat(String timeStamp) {
-    Date date = new Date();
-    try {
-      date = new SimpleDateFormat("yyyy.MM.dd.HH:mm:ss").parse(timeStamp);
-    } catch (ParseException e) {
-      e.printStackTrace();
-    }
-    return new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(date);
+    DateTimeFormatter from = DateTimeFormatter.ofPattern("yyyy.MM.dd.HH:mm:ss");
+    DateTimeFormatter to = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS");
+    return LocalDateTime.parse(timeStamp, from).format(to);
   }
+
 }
