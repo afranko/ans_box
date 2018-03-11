@@ -32,7 +32,7 @@ public final class MyMqttClient implements MqttCallback {
 
   private static final String TIME_DATA_URL = "http://mantis1.tmit.bme.hu:8081/mirei/time_data";
   private static final String NUM_DATA_URL = "http://mantis1.tmit.bme.hu:8081/mirei/num_data";
-  private static final String WARNING_URL = "http://mantis1.tmit.bme.hu:8081/mirei/REST/asset_event"; //COULD CHANGE
+  private static final String WARNING_URL = "http://mantis1.tmit.bme.hu:8081/mirei/REST/as_event_chr_data";
   private static final String MQTT_BROKER_URL = "tcp://mantis1.tmit.bme.hu:1883";
 
   private static MqttClient client;
@@ -75,6 +75,10 @@ public final class MyMqttClient implements MqttCallback {
         sendMovementToMimosa(payload);
         break;
       case "/environment":
+        sendEnviromentMeasToMimosa(payload);
+        break;
+      case "/last":
+        //Value: 0.0 - LOW position, 1.0 - HIGH position
         sendEnviromentMeasToMimosa(payload);
         break;
       case "/warning":

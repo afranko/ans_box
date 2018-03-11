@@ -27,6 +27,9 @@ public class BoxResource {
   @GET
   @Path("{boxName}")
   public Response sendTimestamp(@PathParam("boxName") String boxName) {
+    if (boxName != null && !boxName.startsWith("/")) {
+      boxName = "/".concat(boxName);
+    }
     int statusCode = new MyMqttClient().sendTimestampToBroker(boxName);
     return Response.status(statusCode).build();
   }
