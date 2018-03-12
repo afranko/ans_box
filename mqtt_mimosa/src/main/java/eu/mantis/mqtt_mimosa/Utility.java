@@ -48,8 +48,8 @@ final class Utility {
 
     Response response;
     ClientConfig configuration = new ClientConfig();
-    configuration.property(ClientProperties.CONNECT_TIMEOUT, 30000);
-    configuration.property(ClientProperties.READ_TIMEOUT, 30000);
+    configuration.property(ClientProperties.CONNECT_TIMEOUT, 60000);
+    configuration.property(ClientProperties.READ_TIMEOUT, 60000);
     Client client = ClientBuilder.newClient(configuration);
     client.register(JacksonFeature.class);
 
@@ -157,6 +157,7 @@ final class Utility {
   static String fixDateFormat(String timeStamp) {
     DateTimeFormatter from = DateTimeFormatter.ofPattern("yyyy.MM.dd.HH:mm:ss");
     DateTimeFormatter to = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS");
+    //NOTE could convert date to GMT to comply with MIMOSA standard
     return LocalDateTime.parse(timeStamp, from).format(to);
   }
 

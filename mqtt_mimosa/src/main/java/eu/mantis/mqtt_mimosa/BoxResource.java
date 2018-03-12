@@ -30,7 +30,7 @@ public class BoxResource {
     if (boxName != null && !boxName.startsWith("/")) {
       boxName = "/".concat(boxName);
     }
-    int statusCode = new MyMqttClient().sendTimestampToBroker(boxName);
+    int statusCode = MimosaMain.client.sendTimestampToBroker(boxName);
     return Response.status(statusCode).build();
   }
 

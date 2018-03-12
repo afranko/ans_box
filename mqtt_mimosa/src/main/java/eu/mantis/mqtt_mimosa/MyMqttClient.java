@@ -1,26 +1,17 @@
 package eu.mantis.mqtt_mimosa;
 
 import com.google.gson.JsonSyntaxException;
+import eu.mantis.mqtt_mimosa.mimosa_messages.EventCharData;
 import eu.mantis.mqtt_mimosa.mimosa_messages.NumData;
 import eu.mantis.mqtt_mimosa.mimosa_messages.TimeData;
 import eu.mantis.mqtt_mimosa.mqtt_messages.BoxCommand;
-import eu.mantis.mqtt_mimosa.mqtt_messages.BoxId;
+import eu.mantis.mqtt_mimosa.mqtt_messages.BoxWarning;
 import eu.mantis.mqtt_mimosa.mqtt_messages.EnvironmentMeas;
-import eu.mantis.mqtt_mimosa.mqtt_messages.HasAttribute;
-import eu.mantis.mqtt_mimosa.mqtt_messages.HasEventDescriptionUuid;
-import eu.mantis.mqtt_mimosa.mqtt_messages.HasTimestamp;
-import eu.mantis.mqtt_mimosa.mqtt_messages.HasUTCDateTime;
-import eu.mantis.mqtt_mimosa.mqtt_messages.HasValue;
 import eu.mantis.mqtt_mimosa.mqtt_messages.HasValueContainer;
 import eu.mantis.mqtt_mimosa.mqtt_messages.MovementEvent;
-import eu.mantis.mqtt_mimosa.mqtt_messages.Uuid;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Date;
 import java.util.List;
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
 import org.eclipse.paho.client.mqttv3.MqttCallback;
@@ -35,14 +26,23 @@ public final class MyMqttClient implements MqttCallback {
   private static final String WARNING_URL = "http://mantis1.tmit.bme.hu:8081/mirei/REST/as_event_chr_data";
   private static final String MQTT_BROKER_URL = "tcp://mantis1.tmit.bme.hu:1883";
 
+  private static boolean WAITING_FOR_LAST_POSITION;
+  private static String LAST_POSITION_TIMESTAMP;
+
   private static MqttClient client;
 
-  static {
+  {
     try {
       client = new MqttClient(MQTT_BROKER_URL, "MIMOSA_interface");
+      client.connect();
+      client.setCallback(this);
+      client.subscribe("/environment");
+      client.subscribe("/last");
+      client.subscribe("/movement");
+      client.subscribe("/warning");
     } catch (MqttException e) {
       e.printStackTrace();
-      System.out.println("Could not connect to the MQTT broker.");
+      System.out.println("Could not connect to the MQTT broker. Caused by: " + e.getMessage());
     }
   }
 
@@ -53,6 +53,7 @@ public final class MyMqttClient implements MqttCallback {
       client.connect();
       client.setCallback(this);
       client.subscribe("/environment");
+      client.subscribe("/last");
       client.subscribe("/movement");
       client.subscribe("/warning");
     } catch (MqttException e) {
@@ -71,15 +72,15 @@ public final class MyMqttClient implements MqttCallback {
     System.out.println("-------------------------------------------------");
 
     switch (topic) {
-      case "/movement":
-        sendMovementToMimosa(payload);
-        break;
       case "/environment":
-        sendEnviromentMeasToMimosa(payload);
+        sendEnviromentMeasToMimosa(payload, false);
         break;
       case "/last":
         //Value: 0.0 - LOW position, 1.0 - HIGH position
-        sendEnviromentMeasToMimosa(payload);
+        sendEnviromentMeasToMimosa(payload, true);
+        break;
+      case "/movement":
+        sendMovementToMimosa(payload);
         break;
       case "/warning":
         sendWarningEventToMimosa(payload);
@@ -98,12 +99,48 @@ public final class MyMqttClient implements MqttCallback {
     }
   }
 
+  private void sendEnviromentMeasToMimosa(String payload, boolean lastPos) {
+    EnvironmentMeas measurement;
+    try {
+      measurement = Utility.fromJson(payload, EnvironmentMeas.class);
+    } catch (JsonSyntaxException e) {
+      System.out.println("JSON parser FAILED to parse Environment measurement. Caused by: " + e.getMessage());
+      return;
+    }
+
+    String measLocSite = measurement.getHasLocation().getMeasLocId().getValue();
+
+    String timestamp = Utility.fixDateFormat(measurement.getHasTimestamp().getHasUTCDateTime().getValue());
+    if (lastPos && timestamp.equals(LAST_POSITION_TIMESTAMP)) {
+      WAITING_FOR_LAST_POSITION = false;
+    }
+
+    List<HasValueContainer> hasValueContainers = new ArrayList<>();
+    try {
+      hasValueContainers = measurement.getHasAttributes().get(0).getHasValueContainers();
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
+
+    for (HasValueContainer valueContainer : hasValueContainers) {
+      NumData numData = new NumData(measLocSite, 0, timestamp, "0000000000000000", 5, Integer.valueOf(valueContainer.getUuid().getValue()),
+                                    valueContainer.getHasValue().getValue());
+
+      Utility.sendRequest(NUM_DATA_URL, "POST", numData);
+      /*try {
+        Utility.sendPostRequest(NUM_DATA_URL, numData);
+      } catch (Exception e) {
+        e.printStackTrace();
+      }*/
+    }
+  }
+
   private void sendMovementToMimosa(String payload) {
     MovementEvent event;
     try {
       event = Utility.fromJson(payload, MovementEvent.class);
     } catch (JsonSyntaxException e) {
-      System.out.println("JSON parser FAILED to parse Movement event.");
+      System.out.println("JSON parser FAILED to parse Movement event. Caused by: " + e.getMessage());
       return;
     }
 
@@ -165,41 +202,19 @@ public final class MyMqttClient implements MqttCallback {
     }*/
   }
 
-  private void sendEnviromentMeasToMimosa(String payload) {
-    EnvironmentMeas measurement;
+  private void sendWarningEventToMimosa(String payload) {
+    BoxWarning warning;
     try {
-      measurement = Utility.fromJson(payload, EnvironmentMeas.class);
+      warning = Utility.fromJson(payload, BoxWarning.class);
     } catch (JsonSyntaxException e) {
-      System.out.println("JSON parser FAILED to parse Environment measurement.");
+      System.out.println("JSON parser FAILED to parse warning message coming from the box. Caused by: " + e.getMessage());
       return;
     }
 
-    String measLocSite = measurement.getHasLocation().getMeasLocId().getValue();
-
-    String timestamp = Utility.fixDateFormat(measurement.getHasTimestamp().getHasUTCDateTime().getValue());
-
-    List<HasValueContainer> hasValueContainers = new ArrayList<>();
-    try {
-      hasValueContainers = measurement.getHasAttributes().get(0).getHasValueContainers();
-    } catch (Exception e) {
-      e.printStackTrace();
-    }
-
-    for (HasValueContainer valueContainer : hasValueContainers) {
-      NumData numData = new NumData(measLocSite, 0, timestamp, "0000000000000000", 5, Integer.valueOf(valueContainer.getUuid().getValue()),
-                                    valueContainer.getHasValue().getValue());
-
-      Utility.sendRequest(NUM_DATA_URL, "POST", numData);
-      /*try {
-        Utility.sendPostRequest(NUM_DATA_URL, numData);
-      } catch (Exception e) {
-        e.printStackTrace();
-      }*/
-    }
-  }
-
-  private void sendWarningEventToMimosa(String payload) {
-
+    String timestamp = Utility.fixDateFormat(warning.getTimestamp());
+    EventCharData charData = new EventCharData(warning.getBoxId(), 0, "0000000000000000", 1, 12, "2018-03-12 13:31:42.000", "0000000000000000", 5, 0,
+                                               "0000000000000000", 0, 0, warning.getMessage(), timestamp);
+    Utility.sendRequest(WARNING_URL, "POST", charData);
   }
 
   public int sendTimestampToBroker(String topic) {
@@ -208,85 +223,36 @@ public final class MyMqttClient implements MqttCallback {
     }
 
     DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy.MM.dd.HH:mm:ss");
-    String timestamp = LocalDateTime.now().format(formatter);
-    String payload = Utility.toJson(new BoxId(timestamp));
+    LAST_POSITION_TIMESTAMP = LocalDateTime.now().format(formatter);
+    String payload = Utility.toJson(new BoxCommand(LAST_POSITION_TIMESTAMP));
 
     try {
       client.publish(topic, payload.getBytes(), 0, true);
-      return 200;
     } catch (MqttException e) {
       e.printStackTrace();
       System.out.println("Could not publish the message to the /command topic!");
       return 500;
     }
-  }
 
-  //TODO ask if this needs to be updated or not
-  public void sendCommandToBroker() {
-    if (!client.isConnected()) {
-      startClient();
+    int seconds = 0;
+    WAITING_FOR_LAST_POSITION = true;
+    while (WAITING_FOR_LAST_POSITION) {
+      //50 seconds passed...
+      if (seconds > 49) {
+        break;
+      }
+      try {
+        Thread.sleep(1000);
+      } catch (InterruptedException e) {
+        e.printStackTrace();
+        System.out.println("Waiting for last position message failed with Thread:InterruptedException");
+      }
+      seconds++;
     }
-
-    List<String> values = new ArrayList<>();
-    values.add("doSpotMove");
-    HasValue hasValue = new HasValue();
-    hasValue.setValues(values);
-
-    Uuid uuid = new Uuid();
-    uuid.setValue("3820");
-
-    HasValueContainer hasValueContainer = new HasValueContainer();
-    hasValueContainer.setHasValue(hasValue);
-    hasValueContainer.setUuid(uuid);
-    List<HasValueContainer> hasValueContainers = new ArrayList<>();
-    hasValueContainers.add(hasValueContainer);
-
-    HasAttribute hasAttribute = new HasAttribute();
-    hasAttribute.setHasAttributeClazzType("SD");
-    hasAttribute.setHasName("cmd");
-    hasAttribute.setHasValueContainers(hasValueContainers);
-
-    HasEventDescriptionUuid hasEventDescriptionUuid = new HasEventDescriptionUuid();
-    hasEventDescriptionUuid.setValue("-4788471454629101380");
-
-    DateFormat df = new SimpleDateFormat("yyyy.MM.dd. HH:mm:ss");
-    Date now = Calendar.getInstance().getTime();
-    String timestamp = df.format(now);
-
-    HasUTCDateTime hasUTCDateTime = new HasUTCDateTime();
-    hasUTCDateTime.setFormat("DATETIME");
-    hasUTCDateTime.setValue(timestamp);
-
-    HasTimestamp hasTimestamp = new HasTimestamp();
-    hasTimestamp.setHasUTCDateTime(hasUTCDateTime);
-
-    List<HasAttribute> hasAttributes = new ArrayList<>();
-    hasAttributes.add(hasAttribute);
-
-    BoxCommand boxCommand = new BoxCommand();
-    boxCommand.setHasAttributes(hasAttributes);
-    boxCommand.setHasEventDescriptionUuid(hasEventDescriptionUuid);
-    boxCommand.setHasTimestamp(hasTimestamp);
-
-    String payload = Utility.toJson(boxCommand);
-
-    try {
-      client.publish("/command", payload.getBytes(), 0, true);
-    } catch (MqttException e) {
-      e.printStackTrace();
-      System.out.println("Could not publish the message to the /command topic!");
-    }
-  }
-
-  void startClient() {
-    try {
-      client.connect();
-      client.setCallback(this);
-      client.subscribe("/environment");
-      client.subscribe("/movement");
-      client.subscribe("/warning");
-    } catch (MqttException e) {
-      e.printStackTrace();
+    if (WAITING_FOR_LAST_POSITION) {
+      return 500;
+    } else {
+      return 200;
     }
   }
 

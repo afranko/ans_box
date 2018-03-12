@@ -7,6 +7,7 @@ import java.net.URI;
 import java.util.ServiceConfigurationError;
 import javax.ws.rs.ProcessingException;
 import javax.ws.rs.core.UriBuilder;
+import org.eclipse.paho.client.mqttv3.MqttClient;
 import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.jersey.grizzly2.httpserver.GrizzlyHttpServerFactory;
 import org.glassfish.jersey.server.ResourceConfig;
@@ -14,11 +15,11 @@ import org.glassfish.jersey.server.ResourceConfig;
 class MimosaMain {
 
   private static final String BASE_URI = "http://0.0.0.0:8200";
-
   private static HttpServer server;
+  static MyMqttClient client;
 
   public static void main(String[] args) throws IOException {
-    new MyMqttClient().startClient();
+    client = new MyMqttClient();
     server = startServer();
 
     System.out.println("Type \"stop\" to shutdown the server...");
