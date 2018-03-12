@@ -1,9 +1,13 @@
 package eu.mantis.mqtt_mimosa;
 
 import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URI;
+import java.util.Properties;
 import java.util.ServiceConfigurationError;
 import javax.ws.rs.ProcessingException;
 import javax.ws.rs.core.UriBuilder;
@@ -14,8 +18,9 @@ import org.glassfish.jersey.server.ResourceConfig;
 
 class MimosaMain {
 
-  private static final String BASE_URI = "http://0.0.0.0:8200";
+  private static Properties prop;
   private static HttpServer server;
+  private static final String BASE_URI = getProp().getProperty("box_resource_base_url", "http://0.0.0.0:8200");
   static MyMqttClient client;
 
   public static void main(String[] args) throws IOException {
@@ -49,6 +54,23 @@ class MimosaMain {
       server.shutdownNow();
     }
     System.out.println("Server stopped!");
+  }
+
+  static Properties getProp() {
+    try {
+      if (prop == null) {
+        prop = new Properties();
+        File file = new File("config" + File.separator + "app.properties");
+        FileInputStream inputStream = new FileInputStream(file);
+        prop.load(inputStream);
+      }
+    } catch (FileNotFoundException ex) {
+      throw new ServiceConfigurationError("App.properties file not found, make sure you have the correct working directory set! (directory where "
+                                              + "the config folder can be found)", ex);
+    } catch (Exception ex) {
+      ex.printStackTrace();
+    }
+    return prop;
   }
 
 }

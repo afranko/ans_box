@@ -14,6 +14,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
+import org.eclipse.paho.client.mqttv3.MqttAsyncClient;
 import org.eclipse.paho.client.mqttv3.MqttCallback;
 import org.eclipse.paho.client.mqttv3.MqttClient;
 import org.eclipse.paho.client.mqttv3.MqttException;
@@ -21,10 +22,12 @@ import org.eclipse.paho.client.mqttv3.MqttMessage;
 
 public final class MyMqttClient implements MqttCallback {
 
-  private static final String TIME_DATA_URL = "http://mantis1.tmit.bme.hu:8081/mirei/time_data";
-  private static final String NUM_DATA_URL = "http://mantis1.tmit.bme.hu:8081/mirei/num_data";
-  private static final String WARNING_URL = "http://mantis1.tmit.bme.hu:8081/mirei/REST/as_event_chr_data";
-  private static final String MQTT_BROKER_URL = "tcp://mantis1.tmit.bme.hu:1883";
+  private static final String MQTT_BROKER_URL = MimosaMain.getProp().getProperty("mqtt_broker_url");
+
+  //MIMOSA REST interface URLs where the data should be posted
+  private static final String TIME_DATA_URL = MimosaMain.getProp().getProperty("time_data_url");
+  private static final String NUM_DATA_URL = MimosaMain.getProp().getProperty("num_data_url");
+  private static final String WARNING_URL = MimosaMain.getProp().getProperty("warning_url");
 
   private static boolean WAITING_FOR_LAST_POSITION;
   private static String LAST_POSITION_TIMESTAMP;
@@ -33,13 +36,12 @@ public final class MyMqttClient implements MqttCallback {
 
   {
     try {
-      client = new MqttClient(MQTT_BROKER_URL, "MIMOSA_interface");
+      String clientId = MqttAsyncClient.generateClientId();
+      System.out.println("Generated unique client ID for broker connection: " + clientId);
+      client = new MqttClient(MQTT_BROKER_URL, clientId);
       client.connect();
       client.setCallback(this);
-      client.subscribe("/environment");
-      client.subscribe("/last");
-      client.subscribe("/movement");
-      client.subscribe("/warning");
+      client.subscribe("#");
     } catch (MqttException e) {
       e.printStackTrace();
       System.out.println("Could not connect to the MQTT broker. Caused by: " + e.getMessage());
@@ -52,13 +54,10 @@ public final class MyMqttClient implements MqttCallback {
     try {
       client.connect();
       client.setCallback(this);
-      client.subscribe("/environment");
-      client.subscribe("/last");
-      client.subscribe("/movement");
-      client.subscribe("/warning");
+      client.subscribe("#");
     } catch (MqttException e) {
       e.printStackTrace();
-      System.out.println("Could not reconnect to the MQTT broker.");
+      System.out.println("Could not reconnect to the MQTT broker at: " + MQTT_BROKER_URL);
     }
   }
 
@@ -92,11 +91,6 @@ public final class MyMqttClient implements MqttCallback {
 
   @Override
   public void deliveryComplete(IMqttDeliveryToken iMqttDeliveryToken) {
-    String[] topics = iMqttDeliveryToken.getTopics();
-    if (topics != null && topics[0].equals("/command")) {
-      System.out.println("Command message delivered! Shutting down...");
-      System.exit(0);
-    }
   }
 
   private void sendEnviromentMeasToMimosa(String payload, boolean lastPos) {
@@ -110,10 +104,11 @@ public final class MyMqttClient implements MqttCallback {
 
     String measLocSite = measurement.getHasLocation().getMeasLocId().getValue();
 
-    String timestamp = Utility.fixDateFormat(measurement.getHasTimestamp().getHasUTCDateTime().getValue());
-    if (lastPos && timestamp.equals(LAST_POSITION_TIMESTAMP)) {
+    String timestamp = measurement.getHasTimestamp().getHasUTCDateTime().getValue();
+    if (lastPos && LAST_POSITION_TIMESTAMP != null && timestamp.equals(LAST_POSITION_TIMESTAMP)) {
       WAITING_FOR_LAST_POSITION = false;
     }
+    timestamp = Utility.fixDateFormat(timestamp);
 
     List<HasValueContainer> hasValueContainers = new ArrayList<>();
     try {
@@ -127,11 +122,6 @@ public final class MyMqttClient implements MqttCallback {
                                     valueContainer.getHasValue().getValue());
 
       Utility.sendRequest(NUM_DATA_URL, "POST", numData);
-      /*try {
-        Utility.sendPostRequest(NUM_DATA_URL, numData);
-      } catch (Exception e) {
-        e.printStackTrace();
-      }*/
     }
   }
 
@@ -192,14 +182,6 @@ public final class MyMqttClient implements MqttCallback {
     Utility.sendRequest(TIME_DATA_URL, "POST", timeData2);
     Utility.sendRequest(TIME_DATA_URL, "POST", timeData3);
     Utility.sendRequest(TIME_DATA_URL, "POST", timeData4);
-    /*try {
-      Utility.sendPostRequest(TIME_DATA_URL, timeData1);
-      Utility.sendPostRequest(TIME_DATA_URL, timeData2);
-      Utility.sendPostRequest(TIME_DATA_URL, timeData3);
-      Utility.sendPostRequest(TIME_DATA_URL, timeData4);
-    } catch (Exception e) {
-      e.printStackTrace();
-    }*/
   }
 
   private void sendWarningEventToMimosa(String payload) {

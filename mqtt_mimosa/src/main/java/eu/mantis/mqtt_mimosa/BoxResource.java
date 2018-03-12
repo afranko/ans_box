@@ -20,7 +20,7 @@ public class BoxResource {
 
   @GET
   public Response sendTimestamp() {
-    int statusCode = new MyMqttClient().sendTimestampToBroker(null);
+    int statusCode = MimosaMain.client.sendTimestampToBroker(null);
     return Response.status(statusCode).build();
   }
 
