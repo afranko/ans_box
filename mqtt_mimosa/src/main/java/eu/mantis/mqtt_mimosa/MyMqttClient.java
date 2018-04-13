@@ -50,6 +50,7 @@ public final class MyMqttClient implements MqttCallback {
 
   @Override
   public void connectionLost(Throwable throwable) {
+    throwable.printStackTrace();
     System.out.println("Connection lost with cause: " + throwable.getMessage());
     try {
       client.connect();

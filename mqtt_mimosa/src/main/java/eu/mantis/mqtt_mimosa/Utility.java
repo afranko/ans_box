@@ -1,6 +1,7 @@
 package eu.mantis.mqtt_mimosa;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import eu.mantis.mqtt_mimosa.mimosa_messages.ErrorMessage;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -9,13 +10,9 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Base64;
-import java.util.Date;
-
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.client.Entity;
@@ -23,13 +20,9 @@ import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status.Family;
 import javax.ws.rs.core.UriBuilder;
-
 import org.glassfish.jersey.client.ClientConfig;
 import org.glassfish.jersey.client.ClientProperties;
 import org.glassfish.jersey.jackson.JacksonFeature;
-
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 
 final class Utility {
 
@@ -85,10 +78,9 @@ final class Utility {
         System.out.println("Error occurred during the request at " + URI);
         System.out.println(gson.toJson(errorMessage));
         if (response.getStatus() == 409) {
-          if(errorMessage.getMore_info().equals("sql error when trying to delete")){
+          if ("sql error when trying to delete".equals(errorMessage.getMore_info())) {
             System.out.println("This measurement is already saved in the MIMOSA database!");
-          }
-          else if(errorMessage.getMore_info().equals("sql error when trying to insert")){
+          } else if ("sql error when trying to insert".equals(errorMessage.getMore_info())) {
             System.out.println("New Measurement Location! Needs to be added to the site and meas_location tables first!\n\n");
           }
         }
