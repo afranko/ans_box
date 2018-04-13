@@ -105,7 +105,7 @@ public final class MyMqttClient implements MqttCallback {
     String measLocSite = measurement.getHasLocation().getMeasLocId().getValue();
 
     String timestamp = measurement.getHasTimestamp().getHasUTCDateTime().getValue();
-    if (lastPos && LAST_POSITION_TIMESTAMP != null && timestamp.equals(LAST_POSITION_TIMESTAMP)) {
+    if (lastPos && timestamp != null && timestamp.equals(LAST_POSITION_TIMESTAMP)) {
       WAITING_FOR_LAST_POSITION = false;
     }
     timestamp = Utility.fixDateFormat(timestamp);
@@ -199,7 +199,7 @@ public final class MyMqttClient implements MqttCallback {
     Utility.sendRequest(WARNING_URL, "POST", charData);
   }
 
-  public int sendTimestampToBroker(String topic) {
+  int sendTimestampToBroker(String topic) {
     if (topic == null) {
       topic = "/ANS_MEAS_BOX_001";
     }
