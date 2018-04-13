@@ -44,7 +44,7 @@ class MimosaMain {
         shutdown();
       }));
     } else {
-      System.out.println("Type \"stop\" to shutdown Authorization Server...");
+      System.out.println("Type \"stop\" to shutdown Mimosa-MQTT interface...");
       BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
       String input = "";
       while (!input.equals("stop")) {
