@@ -221,7 +221,7 @@ public final class MyMqttClient implements MqttCallback {
     WAITING_FOR_LAST_POSITION = true;
     while (WAITING_FOR_LAST_POSITION) {
       //50 seconds passed...
-      if (seconds > 49) {
+      if (seconds > 9) {
         break;
       }
       try {

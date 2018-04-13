@@ -1,6 +1,5 @@
 package eu.mantis.mqtt_mimosa;
 
-import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
@@ -30,7 +29,16 @@ public class BoxResource {
     if (boxName != null && !boxName.startsWith("/")) {
       boxName = "/".concat(boxName);
     }
-    int statusCode = MimosaMain.client.sendTimestampToBroker(boxName);
+
+    int statusCode = 500;
+    for (int i = 0; i < 5; i++) {
+      statusCode = MimosaMain.client.sendTimestampToBroker(boxName);
+      if (statusCode == 200) {
+        break;
+      } else {
+        System.out.println("RETRY");
+      }
+    }
     return Response.status(statusCode).build();
   }
 

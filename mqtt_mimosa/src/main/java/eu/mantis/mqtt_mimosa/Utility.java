@@ -12,6 +12,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.Base64;
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
@@ -151,7 +152,14 @@ final class Utility {
     DateTimeFormatter from = DateTimeFormatter.ofPattern("yyyy.MM.dd.HH:mm:ss");
     DateTimeFormatter to = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS");
     //NOTE could convert date to GMT to comply with MIMOSA standard
-    return LocalDateTime.parse(timeStamp, from).format(to);
+    try {
+      return LocalDateTime.parse(timeStamp, from).format(to);
+    } catch (DateTimeParseException e) {
+      e.printStackTrace();
+      System.out.println(timeStamp + " could not be parsed into a LocalDateTime, please fix formatting.");
+    }
+
+    return LocalDateTime.now().toString();
   }
 
 }
