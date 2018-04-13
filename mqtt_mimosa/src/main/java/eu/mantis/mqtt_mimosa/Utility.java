@@ -78,7 +78,8 @@ final class Utility {
         System.out.println("Error occurred during the request at " + URI);
         System.out.println(gson.toJson(errorMessage));
         if (response.getStatus() == 409) {
-          if ("sql error when trying to delete".equals(errorMessage.getMore_info())) {
+          if ("sql error when trying to delete".equals(errorMessage.getMore_info()) || "Update or insert conflict"
+              .equals(errorMessage.getMessage())) {
             System.out.println("This measurement is already saved in the MIMOSA database!");
           } else if ("sql error when trying to insert".equals(errorMessage.getMore_info())) {
             System.out.println("New Measurement Location! Needs to be added to the site and meas_location tables first!\n\n");

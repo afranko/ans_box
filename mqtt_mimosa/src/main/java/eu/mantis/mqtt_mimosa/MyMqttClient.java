@@ -210,7 +210,7 @@ public final class MyMqttClient implements MqttCallback {
     String payload = Utility.toJson(new BoxCommand(LAST_POSITION_TIMESTAMP));
 
     try {
-      client.publish(topic, payload.getBytes(), 0, true);
+      client.publish(topic, payload.getBytes(), 0, false);
     } catch (MqttException e) {
       e.printStackTrace();
       System.out.println("Could not publish the message to the /command topic!");
