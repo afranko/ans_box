@@ -7,6 +7,9 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URI;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Properties;
 import java.util.ServiceConfigurationError;
 import javax.ws.rs.ProcessingException;
@@ -27,14 +30,29 @@ class MimosaMain {
     client = new MyMqttClient();
     server = startServer();
 
-    System.out.println("Type \"stop\" to shutdown the server...");
-    BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
-    String input = "";
-    while (!input.equals("stop")) {
-      input = br.readLine();
+    boolean daemon = false;
+    for (String arg : args) {
+      if (arg.equals("-d")) {
+        daemon = true;
+      }
     }
-    br.close();
-    shutdown();
+
+    if (daemon) {
+      System.out.println("In daemon mode, process will terminate for TERM signal...");
+      Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+        System.out.println("Received TERM signal, shutting down...");
+        shutdown();
+      }));
+    } else {
+      System.out.println("Type \"stop\" to shutdown Authorization Server...");
+      BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+      String input = "";
+      while (!input.equals("stop")) {
+        input = br.readLine();
+      }
+      br.close();
+      shutdown();
+    }
   }
 
   private static HttpServer startServer() throws IOException {
