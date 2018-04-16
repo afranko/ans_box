@@ -1,5 +1,7 @@
 package eu.mantis.mqtt_mimosa;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import eu.mantis.mqtt_mimosa.mimosa_messages.ErrorMessage;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -8,11 +10,9 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Base64;
-import java.util.Date;
-
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.client.Entity;
@@ -20,13 +20,9 @@ import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status.Family;
 import javax.ws.rs.core.UriBuilder;
-
 import org.glassfish.jersey.client.ClientConfig;
 import org.glassfish.jersey.client.ClientProperties;
 import org.glassfish.jersey.jackson.JacksonFeature;
-
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 
 final class Utility {
 
@@ -45,8 +41,8 @@ final class Utility {
 
     Response response;
     ClientConfig configuration = new ClientConfig();
-    configuration.property(ClientProperties.CONNECT_TIMEOUT, 30000);
-    configuration.property(ClientProperties.READ_TIMEOUT, 30000);
+    configuration.property(ClientProperties.CONNECT_TIMEOUT, 60000);
+    configuration.property(ClientProperties.READ_TIMEOUT, 60000);
     Client client = ClientBuilder.newClient(configuration);
     client.register(JacksonFeature.class);
 
@@ -82,10 +78,10 @@ final class Utility {
         System.out.println("Error occurred during the request at " + URI);
         System.out.println(gson.toJson(errorMessage));
         if (response.getStatus() == 409) {
-          if(errorMessage.getMore_info().equals("sql error when trying to delete")){
+          if ("sql error when trying to delete".equals(errorMessage.getMore_info()) || "Update or insert conflict"
+              .equals(errorMessage.getMessage())) {
             System.out.println("This measurement is already saved in the MIMOSA database!");
-          }
-          else if(errorMessage.getMore_info().equals("sql error when trying to insert")){
+          } else if ("sql error when trying to insert".equals(errorMessage.getMore_info())) {
             System.out.println("New Measurement Location! Needs to be added to the site and meas_location tables first!\n\n");
           }
         }
@@ -152,12 +148,17 @@ final class Utility {
   }
 
   static String fixDateFormat(String timeStamp) {
-    Date date = new Date();
+    DateTimeFormatter from = DateTimeFormatter.ofPattern("yyyy.MM.dd.HH:mm:ss");
+    DateTimeFormatter to = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS");
+    //NOTE could convert date to GMT to comply with MIMOSA standard
     try {
-      date = new SimpleDateFormat("yyyy.MM.dd.HH:mm:ss").parse(timeStamp);
-    } catch (ParseException e) {
+      return LocalDateTime.parse(timeStamp, from).format(to);
+    } catch (RuntimeException e) {
       e.printStackTrace();
+      System.out.println(timeStamp + " could not be parsed into a LocalDateTime, please fix formatting.");
     }
-    return new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(date);
+
+    return LocalDateTime.now().toString();
   }
+
 }

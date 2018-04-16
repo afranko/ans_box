@@ -6,3 +6,5 @@
 /mqtt_mimosa/.project
 /mqtt_mimosa/.classpath
 /mqtt_mimosa/target/
+/.project
+/.cproject
