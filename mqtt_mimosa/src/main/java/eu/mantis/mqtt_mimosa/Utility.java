@@ -12,7 +12,6 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
 import java.util.Base64;
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
@@ -154,7 +153,7 @@ final class Utility {
     //NOTE could convert date to GMT to comply with MIMOSA standard
     try {
       return LocalDateTime.parse(timeStamp, from).format(to);
-    } catch (DateTimeParseException e) {
+    } catch (RuntimeException e) {
       e.printStackTrace();
       System.out.println(timeStamp + " could not be parsed into a LocalDateTime, please fix formatting.");
     }
