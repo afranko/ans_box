@@ -4,51 +4,92 @@
 
 #include "init.h"
 
-SD_HandleTypeDef hsd;
-HAL_SD_CardInfoTypedef SDCardInfo;
+typedef enum{
+	INIT_OK,
+	INIT_SD_ERROR,
+	HAL_RCC_ERROR,
+	HAL_ADC_ERROR,
+	HAL_I2C_ERROR,
+	HAL_UART_ERROR,
+	HAL_RTC_ERROR,
+	HAL_TIM_ERROR,
+	HAL_SPI_ERROR,
+	SD_MOUNT_ERROR,
+	SD_UNMOUNT_ERROR,
+	SD_OPEN_ERROR,
+	SD_CLOSE_ERROR,
+	SD_READ_ERROR,
+	SD_WRITE_ERROR,
+	SD_EMPTY_ERROR,
+	SD_BSD_ERROR,
+	RTC_NOT_SET
+}InitStateCode;
 
-FATFS FS;
-FIL CONFIG_F;
+SD_HandleTypeDef 		hsd;
+HAL_SD_CardInfoTypedef 	SDCardInfo;
+FATFS 					FS;
+FIL 					CONFIG_F;
+InitStateCode			configResult;
 
-InitStateCode config_status;
+static void SystemClock_Config(void);
+static void MX_GPIO_Init(void);
+static void MX_ADC3_Init(void);
+static void MX_I2C2_Init(void);
+static void MX_RTC_Init(void);
+static void MX_SDIO_SD_Init(void);
+static void MX_SPI1_Init(void);
+static void MX_TIM2_Init(void);
+static void MX_TIM4_Init(void);
+static void MX_USART2_UART_Init(void);
 
-miniBuff serial_time_buff;
-uint8_t serial_time_value;
+static void read_config(void);
+static void write_default_config(void);
+static void is_RTC_Set(void);
 
-void init_settings()
+/**
+ * Public Functions
+ */
+
+/**
+ * @brief This function initializes the system (e.g. IO ports, GPIO pins)
+ * @warning It has to be called in the first place in the MAIN function.
+ */
+void init_settings(void)
 {
-	  HAL_Init();
-	  SystemClock_Config();
-	  MX_GPIO_Init();
-	  MX_ADC3_Init();
-	  MX_I2C2_Init();
-	  MX_RTC_Init();
-	  MX_SDIO_SD_Init();
-	  MX_SPI1_Init();
-	  MX_TIM2_Init();
-	  MX_TIM4_Init();
-	  MX_USART2_UART_Init();
-	  MX_FATFS_Init();
+	HAL_Init();
+	SystemClock_Config();
+	MX_GPIO_Init();
+	MX_ADC3_Init();
+	MX_I2C2_Init();
+	MX_RTC_Init();
+	MX_SDIO_SD_Init();
+	MX_SPI1_Init();
+	MX_TIM2_Init();
+	MX_TIM4_Init();
+	MX_USART2_UART_Init();
+	MX_FATFS_Init();
 
-	  /* Load default settings from SD */
-	  load_config_sd();
+	is_RTC_Set();
+	read_config();
 
-	  /* Check modem PWR */
-	  modemPWR();
+	if(configResult != INIT_OK)
+	{
+		switch(configResult)
+		{
+		case RTC_NOT_SET:
+			isRTCSet = false;
+			break;
 
-	  /* Check if RTC is set */
-	  checkRTC();
-
-	  if(config_status == RTC_NOT_SET)
-	  {
-	  	  setRTC();
-	  }
-
-	  if(config_status != INIT_OK)
-	  {
-		  restart_init();
-	  }
+		default:
+			restart_system();
+			break;
+		}
+	}
 }
+
+/**
+ * Private Functions
+ */
 
 /** System Clock Configuration
 */
@@ -75,10 +116,10 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.PLL.PLLM = 12;
   RCC_OscInitStruct.PLL.PLLN = 336;
   RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
-  RCC_OscInitStruct.PLL.PLLQ = 7;
+  RCC_OscInitStruct.PLL.PLLQ = 12;	// It was 7 before
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
   {
-    config_status = HAL_RCC_ERROR;
+    configResult = HAL_RCC_ERROR;
   }
 
     /**Initializes the CPU, AHB and APB busses clocks
@@ -92,14 +133,14 @@ void SystemClock_Config(void)
 
   if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_5) != HAL_OK)
   {
-	  config_status = HAL_RCC_ERROR;
+	  configResult = HAL_RCC_ERROR;
   }
 
   PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_RTC;
   PeriphClkInitStruct.RTCClockSelection = RCC_RTCCLKSOURCE_LSE;
   if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK)
   {
-	  config_status = HAL_RCC_ERROR;
+	  configResult = HAL_RCC_ERROR;
   }
 
     /**Configure the Systick interrupt time
@@ -136,7 +177,7 @@ void MX_ADC3_Init(void)
   hadc3.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
   if (HAL_ADC_Init(&hadc3) != HAL_OK)
   {
-	  config_status = HAL_ADC_ERROR;
+	  configResult = HAL_ADC_ERROR;
   }
 
     /**Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time.
@@ -146,7 +187,7 @@ void MX_ADC3_Init(void)
   sConfig.SamplingTime = ADC_SAMPLETIME_480CYCLES;
   if (HAL_ADC_ConfigChannel(&hadc3, &sConfig) != HAL_OK)
   {
-	  config_status = HAL_ADC_ERROR;
+	  configResult = HAL_ADC_ERROR;
   }
 
     /**Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time.
@@ -155,7 +196,7 @@ void MX_ADC3_Init(void)
   sConfig.Rank = 2;
   if (HAL_ADC_ConfigChannel(&hadc3, &sConfig) != HAL_OK)
   {
-	  config_status = HAL_ADC_ERROR;
+	  configResult = HAL_ADC_ERROR;
   }
 
     /**Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time.
@@ -164,7 +205,7 @@ void MX_ADC3_Init(void)
   sConfig.Rank = 3;
   if (HAL_ADC_ConfigChannel(&hadc3, &sConfig) != HAL_OK)
   {
-	  config_status = HAL_ADC_ERROR;
+	  configResult = HAL_ADC_ERROR;
   }
 
     /**Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time.
@@ -173,7 +214,7 @@ void MX_ADC3_Init(void)
   sConfig.Rank = 4;
   if (HAL_ADC_ConfigChannel(&hadc3, &sConfig) != HAL_OK)
   {
-	  config_status = HAL_ADC_ERROR;
+	  configResult = HAL_ADC_ERROR;
   }
 
 }
@@ -192,7 +233,7 @@ void MX_I2C2_Init(void)
   hi2c2.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
   if (HAL_I2C_Init(&hi2c2) != HAL_OK)
   {
-	  config_status = HAL_I2C_ERROR;
+	  configResult = HAL_I2C_ERROR;
   }
 }
 
@@ -210,7 +251,7 @@ void MX_RTC_Init(void)
   hrtc.Init.OutPutType = RTC_OUTPUT_TYPE_OPENDRAIN;
   if (HAL_RTC_Init(&hrtc) != HAL_OK)
   {
-	  config_status = HAL_RTC_ERROR;
+	  configResult = HAL_RTC_ERROR;
   }
 }
 
@@ -223,7 +264,11 @@ void MX_SDIO_SD_Init(void)
   hsd.Init.ClockPowerSave = SDIO_CLOCK_POWER_SAVE_DISABLE;
   hsd.Init.BusWide = SDIO_BUS_WIDE_1B;
   hsd.Init.HardwareFlowControl = SDIO_HARDWARE_FLOW_CONTROL_DISABLE;
-  hsd.Init.ClockDiv = 0;
+  hsd.Init.ClockDiv = 2;	// It was zero before
+  if(BSP_SD_Init() != MSD_OK)
+  {
+	  configResult = SD_BSD_ERROR;
+  }
 }
 
 /* SPI1 init function */
@@ -243,7 +288,7 @@ void MX_SPI1_Init(void)
 
 	if(HAL_SPI_Init(&hspi1) != HAL_OK)
 	{
-		config_status = HAL_SPI_ERROR;
+		configResult = HAL_SPI_ERROR;
 	}
 }
 
@@ -261,24 +306,24 @@ void MX_TIM2_Init(void)
   htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
   {
-	  config_status = HAL_TIM_ERROR;
+	  configResult = HAL_TIM_ERROR;
   }
 
   sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
   if (HAL_TIM_ConfigClockSource(&htim2, &sClockSourceConfig) != HAL_OK)
   {
-	  config_status = HAL_TIM_ERROR;
+	  configResult = HAL_TIM_ERROR;
   }
 
   sMasterConfig.MasterOutputTrigger = TIM_TRGO_UPDATE;
   sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
   if (HAL_TIMEx_MasterConfigSynchronization(&htim2, &sMasterConfig) != HAL_OK)
   {
-	  config_status = HAL_TIM_ERROR;
+	  configResult = HAL_TIM_ERROR;
   }
   if (HAL_TIM_Base_Start(&htim2) != HAL_OK)
   {
-	  config_status = HAL_TIM_ERROR;
+	  configResult = HAL_TIM_ERROR;
   }
 
 }
@@ -297,24 +342,24 @@ void MX_TIM4_Init(void)
   htim4.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   if (HAL_TIM_Base_Init(&htim4) != HAL_OK)
   {
-	  config_status = HAL_TIM_ERROR;
+	  configResult = HAL_TIM_ERROR;
   }
 
   sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
   if (HAL_TIM_ConfigClockSource(&htim4, &sClockSourceConfig) != HAL_OK)
   {
-	  config_status = HAL_TIM_ERROR;
+	  configResult = HAL_TIM_ERROR;
   }
 
   sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
   sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
   if (HAL_TIMEx_MasterConfigSynchronization(&htim4, &sMasterConfig) != HAL_OK)
   {
-	  config_status = HAL_TIM_ERROR;
+	  configResult = HAL_TIM_ERROR;
   }
   if (HAL_TIM_Base_Start_IT(&htim4) != HAL_OK)
   {
-	  config_status = HAL_TIM_ERROR;
+	  configResult = HAL_TIM_ERROR;
   }
 
 }
@@ -324,20 +369,21 @@ void MX_USART2_UART_Init(void)
 {
 
   huart2.Instance = USART2;
-  huart2.Init.BaudRate = 115200;
+  huart2.Init.BaudRate = 38400;		//115200;
   huart2.Init.WordLength = UART_WORDLENGTH_8B;
   huart2.Init.StopBits = UART_STOPBITS_1;
   huart2.Init.Parity = UART_PARITY_NONE;
   huart2.Init.Mode = UART_MODE_TX_RX;
-  huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE; //UART_HWCONTROL_RTS_CTS;
   huart2.Init.OverSampling = UART_OVERSAMPLING_16;
   if (HAL_UART_Init(&huart2) != HAL_OK)
   {
-	  config_status = HAL_UART_ERROR;
+	  configResult = HAL_UART_ERROR;
   }
 
 }
 
+/* GPIO init function */
 void MX_GPIO_Init(void)
 {
 
@@ -360,48 +406,115 @@ void MX_GPIO_Init(void)
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
   HAL_GPIO_WritePin(GPIOC,GPIO_PIN_13, GPIO_PIN_SET);
 
-  /* Extra LED init */
-  /* //TODO
-  GPIO_InitStruct.Pin = GPIO_PIN_13;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FAST;
-  GPIO_InitStruct.Pull = GPIO_PULLUP;
-  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
-  HAL_GPIO_WritePin(GPIOC,GPIO_PIN_13, GPIO_PIN_SET);
-  */
-
-  /* Modem EN\ pin init */
-  GPIO_InitStruct.Pin = GPIO_PIN_7;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_MEDIUM;
-  GPIO_InitStruct.Pull = GPIO_PULLUP;
-  HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
-  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_7, GPIO_PIN_SET);
-
-  /* Modem key pin init */
-  GPIO_InitStruct.Pin = GPIO_PIN_8;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
-  GPIO_InitStruct.Pull = GPIO_PULLUP;
-  HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
-  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_8, GPIO_PIN_SET);
-
-  /* Modem PS pin init */
-  GPIO_InitStruct.Pin = GPIO_PIN_9;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
-
 }
 
-void config_error()
+/* Read config file from SD card */
+void read_config(void)
 {
-	config_status = NO_CONFIG_ERROR;
+	FRESULT f_res;
+
+	/* Try to mount SD */
+	if(f_mount(&FS, "0:", 1) != FR_OK)
+	{
+		configResult = SD_MOUNT_ERROR;
+		return;
+	}
+
+	f_res = f_open(&CONFIG_F, "config.json", FA_OPEN_EXISTING | FA_READ);
+
+	/* SD physical or any other error */
+	if((f_res != FR_OK ) && (f_res != FR_NO_FILE))
+	{
+		configResult = SD_OPEN_ERROR;
+		return;
+	}
+
+	/* Mounting SD was successful, but there isn't any config file */
+	if(f_res == FR_NO_FILE)
+	{
+		write_default_config();
+		configResult = SD_EMPTY_ERROR;
+	}
+
+	/* Reading config from SD card */
+	if(f_res == FR_OK)
+	{
+		char in_buff[512];
+		UINT chpoint;
+		UINT lnpoint = f_size(&CONFIG_F);
+
+		if(f_read(&CONFIG_F, in_buff, lnpoint, &chpoint) == FR_OK)
+		{
+			if (lnpoint != chpoint)
+			{
+				configResult = SD_READ_ERROR;
+				return;
+			}
+
+			const char *mqtt_host_p = NULL;
+			const char *port_p = NULL;
+			const char *gsm_apn_p = NULL;
+			const char *client_name_p = NULL;
+
+			/* Get config settings from JSON */
+			JSON_Value *conf_setup = json_parse_string(in_buff);
+
+			/* See below */
+			//#error "There is no error handling if the user gave wrong values in the config file"
+			/*
+			 * Warning: There is no error handling if the user gave wrong values in the config file
+			 * For example: doubles as number, or longer string then the excepted size
+			 */
+
+			client_name_p = json_object_get_string(json_object(conf_setup), "client_name");
+			mqtt_host_p = json_object_get_string(json_object(conf_setup), "mqtt_host");
+			port_p = json_object_get_string(json_object(conf_setup), "port");
+			gsm_apn_p = json_object_get_string(json_object(conf_setup), "gsm_apn");
+
+
+			hconfig = (Settings_HandleTypeDef*) malloc(sizeof(Settings_HandleTypeDef) + strlen(mqtt_host_p) +1U);
+
+			hconfig->threshold_min = (uint16_t)json_object_get_number(json_object(conf_setup), "threshold_min");
+			hconfig->threshold_max = (uint16_t)json_object_get_number(json_object(conf_setup), "threshold_max");
+			hconfig->meas_timeout = (uint16_t)json_object_get_number(json_object(conf_setup), "meas_timeout");
+			hconfig->meas_offset = (uint16_t)json_object_get_number(json_object(conf_setup), "meas_offset");
+			hconfig->env_meas_freq = (uint16_t)json_object_get_number(json_object(conf_setup), "env_meas_freq");
+			hconfig->ping_retry = (uint8_t)json_object_get_number(json_object(conf_setup), "ping_retry");
+
+			strcpy(hconfig->mqtt_host, mqtt_host_p);
+			strcpy(hconfig->port, port_p);
+			strcpy(hconfig->gsm_apn, gsm_apn_p);
+			strcpy(hconfig->client_name, client_name_p);
+
+			json_value_free(conf_setup);
+		}
+		else
+			configResult = SD_READ_ERROR;
+	}
+
+	if(f_close(&CONFIG_F) != FR_OK)
+		configResult = SD_CLOSE_ERROR;
+
+	if(f_mount(NULL, "0:", 1) != FR_OK)
+		configResult = SD_UNMOUNT_ERROR;
 }
 
-void restart_init()
+/* Checks if RTC is not set */
+void is_RTC_Set(void)
 {
-	for(int i = 0; i < 15; i++)
+	RTC_TimeTypeDef time;
+	RTC_DateTypeDef date;
+	HAL_RTC_GetTime(&hrtc, &time, RTC_FORMAT_BIN);
+	HAL_RTC_GetDate(&hrtc, &date, RTC_FORMAT_BIN);
+
+	if(date.Year < 18U)
+		configResult = RTC_NOT_SET;
+}
+
+/* Restart function due to the errors or wrong configuration*/
+void restart_system(void)
+{
+	for(short i = 0; i < 20; i++)
 	{
 		HAL_GPIO_WritePin(GPIOC,GPIO_PIN_13, GPIO_PIN_RESET);
 		HAL_Delay(500);
@@ -411,7 +524,7 @@ void restart_init()
 	HAL_NVIC_SystemReset();
 }
 
-void write_default_cfgfile()
+void write_default_config(void)
 {
 	JSON_Value *default_conf_value = json_value_init_object();
 	JSON_Object *default_conf_object = json_value_get_object(default_conf_value);
@@ -422,8 +535,8 @@ void write_default_cfgfile()
 	json_object_set_number(default_conf_object, "meas_offset", 1000);
 	json_object_set_number(default_conf_object, "env_meas_freq", 1800);
 	json_object_set_string(default_conf_object, "mqtt_host", "mantis1.tmit.bme.hu");
-	json_object_set_string(default_conf_object, "port", "80");
-	json_object_set_string(default_conf_object, "gsm_apn", "internet.telekom");
+	json_object_set_string(default_conf_object, "port", "1883");
+	json_object_set_string(default_conf_object, "gsm_apn", "ibox.tim.it");
 	json_object_set_number(default_conf_object, "ping_retry", 3);
 	json_object_set_string(default_conf_object, "client_name", "ANS_MEAS_BOX_001");
 
@@ -434,446 +547,17 @@ void write_default_cfgfile()
 	UINT siz = (UINT)strlen(serialized_string);
 
 	if(f_open(&CONFIG_F, "config.json", FA_CREATE_NEW | FA_WRITE) != FR_OK)
-	{
-		config_status = CONFIG_WRITE_ERROR;
-	}
+		configResult = SD_WRITE_ERROR;
 	else
 	{
 		f_write(&CONFIG_F, serialized_string, siz, &backp);
 		if(siz != backp)
 		{
-			config_status = CONFIG_WRITE_ERROR;
+			configResult = SD_WRITE_ERROR;
 			return;
 		}
 	}
 
 	json_free_serialized_string(serialized_string);
 	json_value_free(default_conf_value);
-}
-
-void load_config_sd()
-{
-	FRESULT f_res;
-
-	/* Mount SD */
-	if(f_mount(&FS, "SD1", 1) != FR_OK)
-	{
-		config_status = INIT_SD_ERROR;
-		return;
-	}
-
-	f_res = f_open(&CONFIG_F, "config.json", FA_OPEN_EXISTING | FA_READ);
-
-	/* SD physical or any other error */
-	if((f_res != FR_OK ) && (f_res != FR_NO_FILE))
-	{
-		config_status = CONFIG_READ_ERROR;
-		return;
-	}
-
-	/* SD is OK, but there isn't any config file */
-	else if(f_res == FR_NO_FILE)
-		{
-			write_default_cfgfile();
-			config_status = NO_CONFIG_ERROR;
-		}
-		else
-		{
-			char in_buff[500];
-			UINT chpoint;
-			UINT lnpoint = f_size(&CONFIG_F);
-
-			if(f_read(&CONFIG_F, in_buff, lnpoint, &chpoint) == FR_OK)
-			{
-				const char *mqtt_host_p = NULL;
-				const char *port_p = NULL;
-				const char *gsm_apn_p = NULL;
-				const char *client_name_p = NULL;
-
-				if (lnpoint != chpoint)
-				{
-					config_status = CONFIG_READ_ERROR;
-					return;
-				}
-
-				/* Get config settings from JSON */
-				JSON_Value *conf_setup = json_parse_string(in_buff);
-
-				config_s.threshold_min = (uint16_t)json_object_get_number(json_object(conf_setup), "threshold_min");
-				config_s.threshold_max = (uint16_t)json_object_get_number(json_object(conf_setup), "threshold_max");
-				config_s.meas_timeout = (uint16_t)json_object_get_number(json_object(conf_setup), "meas_timeout");
-				config_s.meas_offset = (uint16_t)json_object_get_number(json_object(conf_setup), "meas_offset");
-				config_s.env_meas_freq = (uint16_t)json_object_get_number(json_object(conf_setup), "env_meas_freq");
-				mqtt_host_p = json_object_get_string(json_object(conf_setup), "mqtt_host");
-				port_p = json_object_get_string(json_object(conf_setup), "port");
-				gsm_apn_p = json_object_get_string(json_object(conf_setup), "gsm_apn");
-				config_s.ping_retry = (uint8_t)json_object_get_number(json_object(conf_setup), "ping_retry");
-				client_name_p = json_object_get_string(json_object(conf_setup), "client_name");
-
-				strcpy(config_s.mqtt_host, mqtt_host_p);
-				strcpy(config_s.port, port_p);
-				strcpy(config_s.gsm_apn, gsm_apn_p);
-				strcpy(config_s.client_name, client_name_p);
-
-				json_value_free(conf_setup);
-			}
-			else
-			{
-				config_status = CONFIG_READ_ERROR;
-			}
-		}
-
-	if(f_close(&CONFIG_F) != FR_OK)
-	{
-		config_status = CONFIG_CLOSE_ERROR;
-	}
-
-	if(f_mount(NULL, "SD1", 1) != FR_OK)
-	{
-		config_status = CONFIG_CLOSE_ERROR;
-	}
-}
-
-void modemPWR(void)
-{
-	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_8, GPIO_PIN_RESET);
-	HAL_Delay(5000);
-
-	while(HAL_GPIO_ReadPin(GPIOD, GPIO_PIN_9) != GPIO_PIN_SET)
-	{
-		HAL_GPIO_WritePin(GPIOD, GPIO_PIN_8, GPIO_PIN_SET);
-		HAL_Delay(3000);
-		HAL_GPIO_WritePin(GPIOD, GPIO_PIN_8, GPIO_PIN_RESET);
-		HAL_Delay(3000);
-	}
-	return;
-}
-
-void setMAX(SPI_HandleTypeDef *hspi)
-{
-	uint8_t config_reg = 0x80U;
-	uint8_t config_command = 0x03U;
-
-	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_RESET);
-	HAL_Delay(10);
-	HAL_SPI_Transmit(hspi, &config_reg, 1, HAL_MAX_DELAY);
-	HAL_SPI_Transmit(hspi, &config_command, 1, HAL_MAX_DELAY);
-	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_SET);
-
-	return;
-}
-
-void checkRTC(void)
-{
-	RTC_TimeTypeDef time;
-	RTC_DateTypeDef date;
-	HAL_RTC_GetTime(&hrtc, &time, RTC_FORMAT_BIN);
-	HAL_RTC_GetDate(&hrtc, &date, RTC_FORMAT_BIN);
-	if(date.Year < 17)
-	{
-		config_status = RTC_NOT_SET;
-	}
-	return;
-}
-
-void setRTC(void)
-{
-	char  s_string[] = "AT+CIPSTART=\"TCP\",\"www.bme.hu\",\"80\"\r\n";
-	char http_head_msg[] = "HEAD /lab01/ HTTP/1.1\r\n" "Host: bme.hu\r\n";
-	char s_prov[100];
-	char buff_str[256];
-	uint8_t p_buffs  = 0, p_butt = 0;
-	char setter_str[26];
-	uint32_t the_tick = 0;
-	RTC_TimeTypeDef time;
-	RTC_DateTypeDef date;
-	char univ_str[3];
-
-	strcpy(s_prov, "AT+CSTT=\"");
-	strcat(s_prov, config_s.gsm_apn);
-	strcat(s_prov, "\"\r\n");
-
-	init_miniBuff(&serial_time_buff);
-	HAL_UART_Receive_IT(&huart2, &serial_time_value, 1);
-
-	HAL_UART_Transmit(&huart2, "AT\r\n", strlen("AT\r\n"), HAL_MAX_DELAY);
-	if(check_string("") != true)
-	{
-		return;
-	}
-
-	HAL_UART_Transmit(&huart2, "AT\r\n", strlen("AT\r\n"), HAL_MAX_DELAY);
-	if(check_string("") != true)
-	{
-		return;
-	}
-
-	HAL_UART_Transmit(&huart2, "ATE1\r\n", strlen("ATE0\r\n"), HAL_MAX_DELAY);
-	if(check_string("") != true)
-	{
-		return;
-	}
-
-
-	HAL_UART_Transmit(&huart2, "AT+CREG?\r\n", strlen("AT+CREG?\r\n"), HAL_MAX_DELAY);
-
-	HAL_UART_Transmit(&huart2, "AT+CIPMUX=0\r\n", strlen("AT+CIPMUX=0\r\n"), HAL_MAX_DELAY);
-	if(check_string("") != true)
-	{
-		return;
-	}
-
-	HAL_UART_Transmit(&huart2, "AT+CIPMODE=1\r\n", strlen("AT+CIPMODE=1\r\n"), HAL_MAX_DELAY);
-	if(check_string("") != true)
-	{
-		return;
-	}
-
-	HAL_UART_Transmit(&huart2, "AT+CGATT=1\r\n", strlen("AT+CGATT=1\r\n"), HAL_MAX_DELAY);
-	if(check_string("") != true)
-	{
-		return;
-	}
-
-	HAL_UART_Transmit(&huart2, "AT+CIPSTATUS\r\n", strlen("AT+CIPSTATUS\r\n"), HAL_MAX_DELAY);
-
-
-	HAL_UART_Transmit(&huart2, s_prov, strlen(s_prov), HAL_MAX_DELAY);
-	if(check_string("") != true)
-	{
-		return;
-	}
-
-	HAL_UART_Transmit(&huart2, "AT+CIICR\r\n", strlen("AT+CIICR\r\n"), HAL_MAX_DELAY);
-	if(check_string("") != true)
-	{
-		return;
-	}
-
-	HAL_UART_Transmit(&huart2, "AT+CIFSR\r\n", strlen("AT+CIFSR\r\n"), HAL_MAX_DELAY);
-	if(check_string("") != true)
-	{
-		return;
-	}
-
-
-	HAL_UART_Transmit(&huart2, s_string, strlen(s_string), HAL_MAX_DELAY);
-	if(check_string("CONNECT") != true)
-	{
-		return;
-	}
-
-	HAL_UART_Transmit(&huart2, http_head_msg, strlen(http_head_msg), HAL_MAX_DELAY);
-	the_tick = HAL_GetTick();
-	while((HAL_GetTick() - the_tick) < 30000);
-
-	HAL_RTC_GetTime(&hrtc, &time, RTC_FORMAT_BIN);
-	HAL_RTC_GetDate(&hrtc, &date, RTC_FORMAT_BIN);
-
-	while(pop_miniBuff(&serial_time_buff,  &(buff_str[p_buffs])) != miniBuff_EMPTY)
-	{
-		p_buffs++;
-	}
-	char *point_s = strstr(buff_str, "Date: ");
-	for(p_buffs = 0, p_butt = 6; p_buffs < 26; p_buffs++, p_butt++)
-	{
-		setter_str[p_buffs] = point_s[p_butt];
-	}
-
-	switch(setter_str[1])
-	{
-	case 'o':
-		date.WeekDay = RTC_WEEKDAY_MONDAY;
-		break;
-	case 'u':
-		if(setter_str[0] == 'T')
-		{
-			date.WeekDay = RTC_WEEKDAY_TUESDAY;
-		}
-		else
-		{
-			date.WeekDay = RTC_WEEKDAY_SUNDAY;
-		}
-		break;
-	case 'e':
-		date.WeekDay = RTC_WEEKDAY_WEDNESDAY;
-		break;
-	case 'h':
-		date.WeekDay = RTC_WEEKDAY_THURSDAY;
-		break;
-	case 'r':
-		date.WeekDay = RTC_WEEKDAY_FRIDAY;
-		break;
-	case 'a':
-		date.WeekDay = RTC_WEEKDAY_SATURDAY;
-		break;
-	}
-
-	univ_str[0] = setter_str[5];
-	univ_str[1] = setter_str[6];
-	date.Date = atoi(univ_str);
-
-	switch(setter_str[8])
-	{
-	case 'J':
-		if(setter_str[9] == 'u')
-		{
-			if(setter_str[10] == 'n')
-			{
-				date.Month = RTC_MONTH_JUNE;
-			}
-			else
-			{
-				date.Month = RTC_MONTH_JULY;
-			}
-		}
-		else
-		{
-			date.Month = RTC_MONTH_JANUARY;
-		}
-		break;
-	case 'F':
-		date.Month = RTC_MONTH_FEBRUARY;
-		break;
-	case 'M':
-		if(setter_str[10] == 'r')
-		{
-			date.Month = RTC_MONTH_MARCH;
-		}
-		else
-		{
-			date.Month = RTC_MONTH_MAY;
-		}
-		break;
-	case 'A':
-		if(setter_str[9] == 'p')
-		{
-			date.Month = RTC_MONTH_APRIL;
-		}
-		else
-		{
-			date.Month = RTC_MONTH_AUGUST;
-		}
-		break;
-	case 'S':
-		date.Month = RTC_MONTH_SEPTEMBER;
-		break;
-	case 'O':
-		date.Month = RTC_MONTH_OCTOBER;
-		break;
-	case 'N':
-		date.Month = RTC_MONTH_NOVEMBER;
-		break;
-	case 'D':
-		date.Month = RTC_MONTH_DECEMBER;
-		break;
-	}
-
-	univ_str[0] = setter_str[14];
-	univ_str[1] = setter_str[15];
-	date.Year = atoi(univ_str);
-
-	univ_str[0] = setter_str[17];
-	univ_str[1] = setter_str[18];
-	time.Hours = atoi(univ_str);
-
-	univ_str[0] = setter_str[20];
-	univ_str[1] = setter_str[21];
-	time.Minutes = atoi(univ_str);
-
-	univ_str[0] = setter_str[23];
-	univ_str[1] = setter_str[24];
-	time.Seconds = atoi(univ_str);
-
-	if(time.Hours > 21)
-	{
-		time.Hours = (time.Hours+2)%24;
-		if(date.Month == 1 || date.Month == 3 || date.Month == 5 || date.Month == 7 ||
-				date.Month == 8 || date.Month == 10 || date.Month == 12)
-		{
-			date.Date = (date.Date+1) % 32;
-		}
-		if(date.Month == 4 || date.Month == 6 || date.Month == 9 || date.Month == 11)
-		{
-			date.Date = (date.Date+1) % 31;
-		}
-		if(date.Month == 2)
-		{
-			if((date.Year%4) == 0)
-			{
-				date.Date = (date.Date+1) % 30;
-			}
-			else
-			{
-				date.Date = (date.Date+1) % 29;
-			}
-		}
-
-		if(date.Date == 0)
-		{
-			date.Date++;
-		}
-
-		if(date.Date == 1)
-		{
-			date.Month = (date.Month+1)%13;
-		}
-
-		if(date.Month == 0)
-		{
-			date.Month++;
-		}
-
-		date.WeekDay = (date.WeekDay+1)%8;
-
-		if(date.WeekDay == 0)
-		{
-			date.WeekDay++;
-		}
-
-		if((date.Month == 1) && (date.Date == 1))
-		{
-			date.Year++;
-		}
-	}
-	else
-	{
-		time.Hours = time.Hours+2;
-	}
-
-	time.DayLightSaving = RTC_DAYLIGHTSAVING_NONE;
-	time.StoreOperation = RTC_STOREOPERATION_RESET;
-
-	HAL_RTC_SetDate(&hrtc, &date, RTC_FORMAT_BIN);
-    HAL_RTC_SetTime(&hrtc, &time, RTC_FORMAT_BIN);
-
-	config_status = INIT_OK;
-	return;
-}
-
-bool check_string(char *reply)
-{
-	char tim_ser_str[256];
-	uint8_t serial_head = 0;
-	uint32_t tick_t = 0;
-	tick_t = HAL_GetTick();
-
-	while((HAL_GetTick() - tick_t) < 5000)
-	{
-		uint8_t c_data;
-		if(pop_miniBuff(&serial_time_buff, &c_data) != miniBuff_EMPTY)
-		{
-			if(c_data != 0)
-			{
-				tim_ser_str[serial_head] = c_data;
-				serial_head++;
-			}
-		}
-	}
-
-	if(strstr(tim_ser_str, reply) != NULL)
-	{
-		return true;
-	}
-	return false;
 }

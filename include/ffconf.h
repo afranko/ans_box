@@ -75,7 +75,7 @@
 /   2: f_opendir(), f_readdir() and f_closedir() are removed in addition to 1.
 /   3: f_lseek() function is removed in addition to 2. */
 
-#define _USE_STRFUNC         2      /* 0:Disable or 1-2:Enable */
+#define _USE_STRFUNC         1      /* 0:Disable or 1-2:Enable */
 /* This option switches string functions, f_gets(), f_putc(), f_puts() and
 /  f_printf().
 /
@@ -90,7 +90,7 @@
 #define _USE_MKFS            1
 /* This option switches f_mkfs() function. (0:Disable or 1:Enable) */
 
-#define _USE_FASTSEEK        1
+#define _USE_FASTSEEK        0
 /* This option switches fast seek feature. (0:Disable or 1:Enable) */
 
 #define _USE_LABEL           0
@@ -242,7 +242,7 @@
 /  _NORTC_MDAY and _NORTC_YEAR have no effect. 
 /  These options have no effect at read-only configuration (_FS_READONLY == 1). */
 
-#define _FS_LOCK    3     /* 0:Disable or >=1:Enable */
+#define _FS_LOCK    0     /* 0:Disable or >=1:Enable */
 /* The _FS_LOCK option switches file lock feature to control duplicated file open
 /  and illegal operation to open objects. This option must be 0 when _FS_READONLY
 /  is 1.

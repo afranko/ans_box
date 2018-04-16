@@ -1,283 +1,206 @@
 /*
  * measurement.c
- *
+ *      Author: A. Franko
  */
 
 #include "measurement.h"
-#include <math.h>
 
-/* Counter for ADC's channels */
+static void initMovMeas(void);
+static void readNoffset(void);
+static void readActValues(void);
+static void readOoffset(void);
+static void readMeasEnd(void);
+static void intoa_conv(uint16_t data, char subBuffer[]);
+
+static bool readTelAire(I2C_HandleTypeDef *hi2c, float *humidity, float *ambTemp);
+static bool readPT(SPI_HandleTypeDef *hspi, float *railTemp);
+
+extern inline void initMeasurementParams(char clientName[], RTC_HandleTypeDef *hrtcm);
+
 uint8_t bcounter = 0;
+char parseString[2000];
 
-/* Measurement Flag Block */
-meas_flag_block mfb;
-
-/* Output buffer */
-char outputString[70000];
+/* Movement Functions */
 
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 {
 	if(hadc->Instance == ADC3)
 	{
-		/* Read data from ADC's DR */
+		/* Read data from DR of ADC */
 		uint16_t adc_data = (uint16_t)HAL_ADC_GetValue(hadc);
 
-		/* Writing to buffers */
-		uint8_t chrank = bcounter % 4;
+		/* Writing to buffers and Increment Counter */
+		uint8_t chrank = bcounter++ % 4;
 
-		switch(chrank)
-		{
-		case 0:
-			push_cBuff(&cont_0, adc_data);
-			break;
-		case 1:
-			push_cBuff(&cont_1, adc_data);
-			break;
-		case 2:
-			push_cBuff(&cont_2, adc_data);
-			break;
-		case 3:
-			push_cBuff(&cont_3, adc_data);
-			break;
-		}
-
-		/* Increment counter*/
-		bcounter++;
+		/* Pushing data into the appropriate buffer */
+		push_cBuff(measBuffers[chrank], adc_data);
 	}
 }
 
-uint16_t read_last(cBuff *buff_c)
+void initMovMeas(void)
 {
-	return buff_c->buffer[(buff_c->head-1) % BUFFER_SIZE];
+	mfb.S_MEAS_FLAG = false;
+
+	for(uint8_t inC = 0; inC < 4; inC++)
+		flush_cBuff(sendBuffers[inC]);
+
+	/* Set offset and synchronize buffers */
+	mfb.noffset = measBuffers[0]->head;
+
+	measBuffers[0]->tail = (uint16_t)(mfb.noffset - (hconfig->meas_offset / 10));
+	measBuffers[0]->tail %= measBuffers[0]->size;
+
+	measBuffers[1]->tail = (uint16_t)(mfb.noffset - (hconfig->meas_offset / 10));
+	measBuffers[1]->tail %= measBuffers[1]->size;
+
+	measBuffers[2]->tail = (uint16_t)(mfb.noffset - (hconfig->meas_offset / 10));
+	measBuffers[2]->tail %= measBuffers[2]->size;
+
+	measBuffers[3]->tail = (uint16_t)(mfb.noffset - (hconfig->meas_offset / 10));
+	measBuffers[3]->tail %= measBuffers[3]->size;
+
+
+	mfb.offMeas = true;
 }
 
-void meas_datamove(void)
+void readNoffset(void)
 {
+	uint16_t nData;
 
-	if(mfb.CLEAR_FLAG == true)
+	if((measBuffers[0]->tail < mfb.noffset) && (pop_cBuff(measBuffers[0], &nData) == BUFF_OK))
+		push_cBuff(sendBuffers[0], nData);
+
+	if((measBuffers[1]->tail < mfb.noffset) && (pop_cBuff(measBuffers[1], &nData) == BUFF_OK))
+		push_cBuff(sendBuffers[1], nData);
+
+	if((measBuffers[2]->tail < mfb.noffset) && (pop_cBuff(measBuffers[2], &nData) == BUFF_OK))
+		push_cBuff(sendBuffers[2], nData);
+
+	if((measBuffers[3]->tail < mfb.noffset) && (pop_cBuff(measBuffers[3], &nData) == BUFF_OK))
+		push_cBuff(sendBuffers[3], nData);
+
+	if((measBuffers[0]->tail == mfb.noffset) && (measBuffers[1]->tail == mfb.noffset)
+				&& (measBuffers[2]->tail == mfb.noffset) && (measBuffers[3]->tail == mfb.noffset))
 	{
-		init_meas_flag_block(&mfb);
-		flush_cBuff(&gBuffer0);
-		flush_cBuff(&gBuffer1);
-		flush_cBuff(&gBuffer2);
-		flush_cBuff(&gBuffer3);
-		mfb.CLEAR_FLAG = false;
+		mfb.offMeas = false;
+		mfb.mFlag = true;
+	}
+}
+
+void readOoffset(void)
+{
+	mfb.E_MEAS_FLAG = false;
+
+	/* Set measurement length */
+	if(measBuffers[0]->head > mfb.noffset)
+		mfb.measLength = (measBuffers[0]->head) - (mfb.noffset);
+	else
+		mfb.measLength = (measBuffers[0]->size - mfb.noffset) + measBuffers[0]->head;
+	mfb.endSet = true;
+}
+
+void readActValues(void)
+{
+	uint16_t actValue;
+
+	if((mfb.measc0 < mfb.measLength) && (pop_cBuff(measBuffers[0], &actValue) == BUFF_OK))
+	{
+		push_cBuff(sendBuffers[0], actValue);
+		mfb.measc0++;
 	}
 
-	/* Start reading to the great data buffer */
-	if(mfb.S_MEAS_FLAG == true)
+	if((mfb.measc1 < mfb.measLength) && (pop_cBuff(measBuffers[1], &actValue) == BUFF_OK))
 	{
-
-		/* Set offset to read data before
-		 * the starting of measurement */
-		mfb.noffset0 = (cont_0.head-1) % BUFFER_SIZE;
-		mfb.noffset1 = (cont_1.head-1) % BUFFER_SIZE;
-		mfb.noffset2 = (cont_2.head-1) % BUFFER_SIZE;
-		mfb.noffset3 = (cont_3.head-1) % BUFFER_SIZE;
-
-		/* Set read pointers */
-		cont_0.tail = cont_0.head;
-		cont_1.tail = cont_1.head;
-		cont_2.tail = cont_2.head;
-		cont_3.tail = cont_3.head;
-
-		/* Enable offset data reading */
-		mfb.offMeas = true;
-
-		/* Clear START FLAG */
-		mfb.S_MEAS_FLAG = false;
-
-		/* Set timer */
-		mfb.duration = HAL_GetTick();
-
+		push_cBuff(sendBuffers[1], actValue);
+		mfb.measc1++;
 	}
 
-	/* Start reading negative offset */
-	if(mfb.offMeas == true)
+	if((mfb.measc2 < mfb.measLength) && (pop_cBuff(measBuffers[2], &actValue) == BUFF_OK))
 	{
-		/* Load 0. Buffer */
-		uint16_t temp_head = mfb.noffset0
-				-(config_s.meas_offset/10)
-					+mfb.ocounter;
-
-		push_cBuff(&gBuffer0, cont_0.buffer[(temp_head % BUFFER_SIZE)]);
-
-		/* Load 1. Buffer */
-		temp_head = mfb.noffset1
-				-(config_s.meas_offset/10)
-					+mfb.ocounter;
-
-		push_cBuff(&gBuffer1, cont_1.buffer[(temp_head % BUFFER_SIZE)]);
-
-		/* Load 2. Buffer */
-		temp_head = mfb.noffset2
-				-(config_s.meas_offset/10)
-					+mfb.ocounter;
-
-		push_cBuff(&gBuffer2, cont_2.buffer[(temp_head % BUFFER_SIZE)]);
-
-		/* Load 3. Buffer */
-		temp_head = mfb.noffset3
-				-(config_s.meas_offset/10)
-					+mfb.ocounter;
-
-		push_cBuff(&gBuffer3, cont_3.buffer[(temp_head % BUFFER_SIZE)]);
-
-		if((config_s.meas_offset/10) <= mfb.ocounter)
-		{
-			mfb.offMeas = false;
-			mfb.mFlag = true;
-		}
-
-		mfb.ocounter++;
+		push_cBuff(sendBuffers[2], actValue);
+		mfb.measc2++;
 	}
 
-	/* End of the measurement */
-	if((mfb.measc0 == mfb.measLength) &&
-			(mfb.measc1 == mfb.measLength) &&
-				(mfb.measc2 == mfb.measLength) &&
-					(mfb.measc3 == mfb.measLength) && (mfb.mFlag) && (mfb.end_set))
+	if((mfb.measc3 < mfb.measLength) && (pop_cBuff(measBuffers[3], &actValue) == BUFF_OK))
+	{
+		push_cBuff(sendBuffers[3], actValue);
+		mfb.measc3++;
+	}
+
+	if((mfb.measc0 == mfb.measLength) && (mfb.measc1 == mfb.measLength) && (mfb.measc2 == mfb.measLength)
+		&& (mfb.measc3 == mfb.measLength) && (mfb.endSet))
 	{
 		mfb.mFlag = false;
 		mfb.endMeas = true;
-	}
-
-	/* Set positive offset head */
-	if(mfb.E_MEAS_FLAG)
-	{
-		/*Set measurement length */
-		if(cont_0.head > mfb.noffset0)
-			mfb.measLength = ((cont_0.head) - (mfb.noffset0+1));
-		else
-			mfb.measLength = (BUFFER_SIZE - mfb.noffset0+1) + cont_0.head;
-
-		mfb.end_set = true;
-		mfb.E_MEAS_FLAG = false;
-	}
-
-	/* Start reading measurement data */
-	if(mfb.mFlag)
-	{
-		uint16_t d_data;
-
-		if((pop_cBuff(&cont_0, &d_data) != cBuff_EMPTY) && (mfb.measc0 < mfb.measLength))
-		{
-			push_cBuff(&gBuffer0, d_data);
-			mfb.measc0++;
-		}
-
-		if((pop_cBuff(&cont_1, &d_data) != cBuff_EMPTY) && (mfb.measc1 < mfb.measLength))
-		{
-			push_cBuff(&gBuffer1, d_data);
-			mfb.measc1++;
-		}
-
-		if((pop_cBuff(&cont_2, &d_data) != cBuff_EMPTY) && (mfb.measc2 < mfb.measLength))
-		{
-			push_cBuff(&gBuffer2, d_data);
-			mfb.measc2++;
-		}
-
-		if((pop_cBuff(&cont_3, &d_data) != cBuff_EMPTY) && (mfb.measc3 < mfb.measLength))
-		{
-			push_cBuff(&gBuffer3, d_data);
-			mfb.measc3++;
-		}
-	}
-
-	/* Start reading positive Measurement */
-	if(mfb.endMeas)
-	{
-		uint16_t e_data;
-
-		if((pop_cBuff(&cont_0, &e_data) != cBuff_EMPTY) && (mfb.pofc0 < (config_s.meas_offset/10)))
-		{
-			push_cBuff(&gBuffer0, e_data);
-			mfb.pofc0++;
-		}
-
-		if((pop_cBuff(&cont_1, &e_data) != cBuff_EMPTY) && (mfb.pofc1 < (config_s.meas_offset/10)))
-		{
-			push_cBuff(&gBuffer1, e_data);
-			mfb.pofc1++;
-		}
-
-		if((pop_cBuff(&cont_2, &e_data) != cBuff_EMPTY) && (mfb.pofc2 < (config_s.meas_offset/10)))
-		{
-			push_cBuff(&gBuffer2, e_data);
-			mfb.pofc2++;
-		}
-
-		if((pop_cBuff(&cont_3, &e_data) != cBuff_EMPTY) && (mfb.pofc3 < (config_s.meas_offset/10)))
-		{
-			push_cBuff(&gBuffer3, e_data);
-			mfb.pofc3++;
-		}
-
-		/* End offset measurement and set Message FLAG */
-		if((mfb.pofc0 == (config_s.meas_offset/10)) &&
-					(mfb.pofc1 == (config_s.meas_offset/10)) &&
-						(mfb.pofc2 == (config_s.meas_offset/10)) &&
-							(mfb.pofc3 == (config_s.meas_offset/10)))
-		{
-
-			/* Reset End of Measurement flag */
-			mfb.endMeas = false;
-
-			/* Set Send Message Flag */
-			mfb.MSG_FLAG = true;
-
-			/* Set Timer */
-			mfb.duration = (HAL_GetTick() - mfb.duration + config_s.meas_offset);
-		}
+		mfb.endSet = false;
 	}
 }
 
-void init_meas_flag_block(meas_flag_block *flagBlock)
+void readMeasEnd(void)
 {
-	flagBlock->S_MEAS_FLAG = false;
-	flagBlock->E_MEAS_FLAG = false;
-	flagBlock->CLEAR_FLAG = false;
-	flagBlock->MSG_FLAG = false;
+	uint16_t oData;
 
-	flagBlock->noffset0 = 0;
-	flagBlock->noffset1 = 0;
-	flagBlock->noffset2 = 0;
-	flagBlock->noffset3 = 0;
+	if((mfb.pofc0 < hconfig->meas_offset/10) && (pop_cBuff(measBuffers[0], &oData) == BUFF_OK))
+	{
+		push_cBuff(sendBuffers[0], oData);
+		mfb.pofc0++;
+	}
 
-	flagBlock->ocounter = 0;
+	if((mfb.pofc1 < hconfig->meas_offset/10) && (pop_cBuff(measBuffers[1], &oData) == BUFF_OK))
+	{
+		push_cBuff(sendBuffers[1], oData);
+		mfb.pofc1++;
+	}
 
-	flagBlock->offMeas = false;
+	if((mfb.pofc2 < hconfig->meas_offset/10) && (pop_cBuff(measBuffers[2], &oData) == BUFF_OK))
+	{
+		push_cBuff(sendBuffers[2], oData);
+		mfb.pofc2++;
+	}
 
-	flagBlock->mFlag = false;
-	flagBlock->measLength = 1000;
+	if((mfb.pofc3 < hconfig->meas_offset/10) && (pop_cBuff(measBuffers[3], &oData) == BUFF_OK))
+	{
+		push_cBuff(sendBuffers[3], oData);
+		mfb.pofc3++;
+	}
 
-	flagBlock->measc0 = 0;
-	flagBlock->measc1 = 0;
-	flagBlock->measc2 = 0;
-	flagBlock->measc3 = 0;
-
-	flagBlock->pofc0 = 0;
-	flagBlock->pofc1 = 0;
-	flagBlock->pofc2 = 0;
-	flagBlock->pofc3 = 0;
-
-	flagBlock->end_set = false;
-	flagBlock->endMeas = false;
-	flagBlock->duration = 0;
-
-	flagBlock->warning_flag = false;
-	flagBlock->MSG_SENT = false;
+	if((mfb.pofc0 == hconfig->meas_offset/10) && (mfb.pofc1 == hconfig->meas_offset/10) &&
+			(mfb.pofc2 == hconfig->meas_offset/10)&& (mfb.pofc3 == hconfig->meas_offset/10))
+	{
+		mfb.MSG_FLAG = true;
+		mfb.measLength = 0;
+		mfb.endMeas = false;
+	}
 }
 
-void intoa_conv(uint16_t data, char *ibuffer)
+/*
+ * @brief This function implements the movement measurement cycles
+ */
+void doMovMeas(bool *msgFlag, bool *warningFlag)
+{
+	if(mfb.S_MEAS_FLAG)
+		initMovMeas();
+	if(mfb.offMeas)
+		readNoffset();
+	if(mfb.E_MEAS_FLAG)
+		readOoffset();
+	if(mfb.mFlag)
+		readActValues();
+	if(mfb.endMeas)
+		readMeasEnd();
+
+	*msgFlag = mfb.MSG_FLAG;
+	*warningFlag = mfb.warningFlag;
+}
+
+void intoa_conv(uint16_t data, char subBuffer[])
 {
 	uint8_t len_0 = 4;
 	char s_buf[5];
 
 	for(uint8_t j = 0; j < 5; j++)
 	{
-		ibuffer[j] = 0;
+		subBuffer[j] = 0;
 	}
 
 	itoa(data, s_buf, 10);
@@ -295,110 +218,231 @@ void intoa_conv(uint16_t data, char *ibuffer)
 
 	for(uint8_t i = 0; i < len_0; i++)
 	{
-		ibuffer[i] = '0';
+		subBuffer[i] = '0';
 	}
 
-	strcat(ibuffer, s_buf);
+	strcat(subBuffer, s_buf);
 	return;
 }
 
-void getTimeStamp(RTC_HandleTypeDef *hrtc, char *TimeString)
+/*
+ * @brief This function initializes measurement flag block
+ */
+void initFlags(void)
 {
-	char TiSt[20], uncon[3];
-	RTC_DateTypeDef date;
-	RTC_TimeTypeDef time;
+	mfb.duration = 0;
+	mfb.S_MEAS_FLAG = false;
+	mfb.E_MEAS_FLAG = false;
+	mfb.MSG_FLAG = false;
+	mfb.MSG_PARSED = false;
+	mfb.endMeas = false;
+	mfb.endSet = false;
+	mfb.mFlag = false;
+	mfb.measLength = 0;
+	mfb.offMeas = false;
+	mfb.warningFlag = false;
 
-	HAL_RTC_GetTime(hrtc, &time, RTC_FORMAT_BIN);
-	HAL_RTC_GetDate(hrtc, &date, RTC_FORMAT_BIN);
+	mfb.noffset = 0;
 
-	strcpy(TiSt, "20");
+	mfb.measc0 = 0;
+	mfb.measc1 = 0;
+	mfb.measc2 = 0;
+	mfb.measc3 = 0;
 
-	itoa(date.Year, uncon, 10);
-	strcat(TiSt, uncon);
-
-	strcat(TiSt, ".");
-
-	itoa(date.Month, uncon, 10);
-	if((date.Month / 10) == 0)
-	{
-		uncon[1] = uncon[0];
-		uncon[0] = '0';
-	}
-	strcat(TiSt, uncon);
-
-	strcat(TiSt, ".");
-
-	itoa(date.Date, uncon, 10);
-	if((date.Date / 10) == 0)
-	{
-		uncon[1] = uncon[0];
-		uncon[0] = '0';
-	}
-	strcat(TiSt, uncon);
-
-	strcat(TiSt, ".");
-
-	itoa(time.Hours, uncon, 10);
-	if((time.Hours / 10) == 0)
-	{
-		uncon[1] = uncon[0];
-		uncon[0] = '0';
-	}
-	strcat(TiSt, uncon);
-
-	strcat(TiSt, ":");
-
-	itoa(time.Minutes, uncon, 10);
-	if((time.Minutes / 10) == 0)
-	{
-		uncon[1] = uncon[0];
-		uncon[0] = '0';
-	}
-	strcat(TiSt, uncon);
-
-	strcat(TiSt, ":");
-
-	itoa(time.Seconds, uncon, 10);
-	if((time.Seconds / 10) == 0)
-	{
-		uncon[1] = uncon[0];
-		uncon[0] = '0';
-	}
-	strcat(TiSt, uncon);
-	strcpy(TimeString, TiSt);
-	return;
+	mfb.pofc0 = 0;
+	mfb.pofc1 = 0;
+	mfb.pofc2 = 0;
+	mfb.pofc3 = 0;
 }
 
-void envMeas(RTC_HandleTypeDef *hrtc, I2C_HandleTypeDef *hi2c, SPI_HandleTypeDef *hspi)
+/*
+ * @brief This function parses data into JSON and serializes it
+ * @param A buffer that will contain the serialized message
+ * @param Timestamp to synchronize movement message with warning message
+ */
+bool movMeasToMessage(char movBuffer[], char warTimeStamp[])
 {
-	float humidity, amb_temperature, rail_temp;
-	readTelaire(hi2c, &humidity, &amb_temperature);
-	readPT(hspi, &rail_temp);
+	BUFF_State parse_flag;
+	uint16_t msg_data;
+	char msg_string[20];
+	char itoa_subbuf[5];
+	bool first_iteration = false;
+	uint32_t ostr_len;
 
+	/* Timestamp */
 	char tStamp[20];
-	getTimeStamp(hrtc, tStamp);
-	sendEnvironmentMessage(config_s.client_name, tStamp, rail_temp, amb_temperature, humidity);
+	getTimeStamp(tStamp);
+	strcpy(warTimeStamp, tStamp);	// For Warning Message
 
-	return;
+	/* Copy JSON */
+	if(!parseMovementMessage(mfb.duration, hconfig->client_name, tStamp, parseString))
+		return false;	// JSON serializing error
+	uint16_t json_slen = (strstr(parseString, "xxxx") - parseString);		// Pointer arithmetic
+	strncpy(movBuffer, parseString, json_slen);
+
+	/* Defending ourselves */
+	ostr_len = json_slen;
+
+	while(!mfb.MSG_PARSED)
+	{
+		/* Buffer0 data */
+		pop_cBuff(sendBuffers[0], &msg_data);
+		intoa_conv(msg_data, itoa_subbuf);
+		strcpy(msg_string, itoa_subbuf);
+		strcat(msg_string, "-");
+
+		/* Buffer1 data */
+		pop_cBuff(sendBuffers[1], &msg_data);
+		intoa_conv(msg_data, itoa_subbuf);
+		strcat(msg_string, itoa_subbuf);
+		strcat(msg_string, "-");
+
+		/* Buffer2 data */
+		pop_cBuff(sendBuffers[2], &msg_data);
+		intoa_conv(msg_data, itoa_subbuf);
+		strcat(msg_string, itoa_subbuf);
+		strcat(msg_string, "-");
+
+		/* Buffer3 data */
+		parse_flag = pop_cBuff(sendBuffers[3], &msg_data);
+		intoa_conv(msg_data, itoa_subbuf);
+		strcat(msg_string, itoa_subbuf);
+
+		/* Send message if there is not any data */
+		if(parse_flag == BUFF_EMPTY)
+		{
+			sprintf(movBuffer + ostr_len, "\n");
+			ostr_len++;
+			for(uint8_t i = 0; i < 24; i++)
+			{
+				sprintf(movBuffer + ostr_len, " ");
+				ostr_len++;
+			}
+
+			/* sprintf terminate the string with '\0' char */
+			sprintf(movBuffer + ostr_len, strstr(parseString, "]"));
+			mfb.MSG_PARSED = true;
+		}
+		else
+		{
+			/* Add measurement to array */
+			if(!first_iteration)
+			{
+				sprintf(movBuffer + ostr_len, msg_string);
+				ostr_len = ostr_len + 19;
+				sprintf(movBuffer + ostr_len, "\"");
+				ostr_len++;
+				first_iteration = true;
+			}
+			else
+			{
+				sprintf(movBuffer + ostr_len, ",\n");
+				ostr_len = ostr_len+2;
+				for(uint8_t i = 0; i < 28; i++)
+				{
+					sprintf(movBuffer + ostr_len, " ");
+					ostr_len++;
+				}
+				sprintf(movBuffer + ostr_len, "\"");
+				ostr_len++;
+				sprintf(movBuffer + ostr_len, msg_string);
+				ostr_len = ostr_len + 19;
+				sprintf(movBuffer + ostr_len, "\"");
+				ostr_len++;
+			}
+		}
+	}
+	mfb.warningFlag = false;
+	mfb.duration = 0;
+	mfb.MSG_PARSED = false;
+	mfb.MSG_FLAG = false;
+
+	mfb.noffset = 0;
+
+	mfb.measc0 = 0;
+	mfb.measc1 = 0;
+	mfb.measc2 = 0;
+	mfb.measc3 = 0;
+
+	mfb.pofc0 = 0;
+	mfb.pofc1 = 0;
+	mfb.pofc2 = 0;
+	mfb.pofc3 = 0;
+
+	return true;
 }
 
-void readTelaire(I2C_HandleTypeDef *hi2c, float *humidity, float *temperature)
+/* Environment Functions */
+
+/*
+ * @brief This function initializes the PT-100 module (via SPI)
+ * @param Pointer to the SPI handling structure
+ * @return This function returns true if everything was OK otherwise it returns false
+ */
+bool initPT(SPI_HandleTypeDef *hspi)
 {
-	uint8_t received_data[4];
-	HAL_I2C_Master_Receive(hi2c, 0x28 << 1, received_data, 4, HAL_MAX_DELAY);
+	uint8_t config_reg = 0x80U;
+	uint8_t config_command = 0x03U;
 
-	if((received_data[0] & 0xC0U)!= 0)
-		return;
+	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_RESET);
+	HAL_Delay(10);
 
-	*humidity = (float) (((received_data[0] & 0x3FU) << 8) | received_data[1]) * 100 / 16384;
-	*temperature = (float) ((received_data[2] << 6) | ((received_data[3] & 0xFCU) >> 2)) * 165 / 16384 - 40;
+	if(HAL_SPI_Transmit(hspi, &config_reg, 1, HAL_MAX_DELAY) != HAL_OK)
+		return false;
+	if(HAL_SPI_Transmit(hspi, &config_command, 1, HAL_MAX_DELAY) != HAL_OK)
+		return false;
 
-	return;
+	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_SET);
+	return true;
 }
 
-void readPT(SPI_HandleTypeDef *hspi, float *rtemp)
+/*
+ * @brief This function do a complete environment measurement session (temperatures and humidity included)
+ * @param Pointer to I2C handling structure
+ * @param Pointer to SPI handling structure
+ * @param A Buffer consisting of chars to store the formatted JSON message as a string
+ * @note Before using this function, PT-100 sensor must be initialized by initPT function
+ * @return This functions returns true if the measurement session is completed otherwise it returns false
+ */
+bool doEnvMeas(I2C_HandleTypeDef *hi2c, SPI_HandleTypeDef *hspi, char envBuffer[])
 {
+	float humidity, amb_temp, rail_temp;
 
+	if(!readTelAire(hi2c, &humidity, &amb_temp))
+		return false;
+
+	if(!readPT(hspi, &rail_temp))
+		return false;
+
+	char timeStamp[20];
+	if(!getTimeStamp(timeStamp))
+		return false;
+
+	if(!parseEnvironmentMessage(amb_temp, humidity, rail_temp, timeStamp, clientIdentifier, envBuffer))
+		return false;
+
+	return true;
+}
+
+/* Reading Ambient Temperature and Humidity from TelAire sensor */
+bool readTelAire(I2C_HandleTypeDef *hi2c, float *humidity, float *ambTemp)
+{
+	uint8_t receivedData[4];
+	if(HAL_I2C_Master_Receive(hi2c, 0x28 << 1, receivedData, 4U, HAL_MAX_DELAY) != HAL_OK)
+		return false;
+
+	if((receivedData[0] & 0xC0U)!= 0)	// Checking ERROR bit
+		return false;
+
+	*humidity = (float) (((receivedData[0] & 0x3FU) << 8) | receivedData[1]) * 100 / (float) 16384;
+	*ambTemp = (float) ((receivedData[2] << 6) | ((receivedData[3] & 0xFC) >> 2)) * 165 / (float) 16384 - 40;
+
+	return true;
+}
+
+/* Reading Rail temperature from PT100 sensor */
+bool readPT(SPI_HandleTypeDef *hspi, float *railTemp)
+{
 	uint8_t w_add = 0x80U, r_add = 0x00U, bias_on = 0x81U, conv_start = 0xA1U, bias_off = 0x03U;
 	uint8_t received_data[8];
 	uint16_t raw_adc_code;
@@ -407,26 +451,37 @@ void readPT(SPI_HandleTypeDef *hspi, float *rtemp)
 	/* Turn BIAS ON */
 	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_RESET);
 	HAL_Delay(10); //MAX STARTUP TIME TIME
-	HAL_SPI_Transmit(hspi, &w_add, 1, HAL_MAX_DELAY);
-	HAL_SPI_Transmit(hspi, &bias_on, 1, HAL_MAX_DELAY);
+
+	if(HAL_SPI_Transmit(hspi, &w_add, 1, HAL_MAX_DELAY) != HAL_OK)
+		return false;
+	if(HAL_SPI_Transmit(hspi, &bias_on, 1, HAL_MAX_DELAY) != HAL_OK)
+		return false;
+
 	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_SET);
 	HAL_Delay(10); //MAX STARTUP TIME TIME
 
 	/* START CONV */
 	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_RESET);
 	HAL_Delay(10); //MAX STARTUP TIME TIME
-	HAL_SPI_Transmit(hspi, &w_add, 1, HAL_MAX_DELAY);
-	HAL_SPI_Transmit(hspi, &conv_start, 1, HAL_MAX_DELAY);
+
+	if(HAL_SPI_Transmit(hspi, &w_add, 1, HAL_MAX_DELAY) != HAL_OK)
+		return false;
+	if(HAL_SPI_Transmit(hspi, &conv_start, 1, HAL_MAX_DELAY) != HAL_OK)
+		return false;
+
 	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_SET);
 	HAL_Delay(63); //MAX CONV TIME
 
 	/* Read Data */
 	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_RESET);
 	HAL_Delay(10); //MAX STARTUP TIME TIME
-	HAL_SPI_Transmit(hspi, &r_add, 1, HAL_MAX_DELAY);
+
+	if(HAL_SPI_Transmit(hspi, &r_add, 1, HAL_MAX_DELAY) != HAL_OK)
+		return false;
 
 	for(uint8_t i = 0; i < 8; i++)
-		HAL_SPI_Receive(hspi, &received_data[i], 1, HAL_MAX_DELAY);
+		if(HAL_SPI_Receive(hspi, &received_data[i], 1, HAL_MAX_DELAY) != HAL_OK)
+			return false;
 
 	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_SET);
 	HAL_Delay(1);
@@ -434,126 +489,99 @@ void readPT(SPI_HandleTypeDef *hspi, float *rtemp)
 	/* Turn BIAS OFF */
 	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_RESET);
 	HAL_Delay(10); //MAX STARTUP TIME TIME
-	HAL_SPI_Transmit(hspi, &w_add, 1, HAL_MAX_DELAY);
-	HAL_SPI_Transmit(hspi, &bias_off, 1, HAL_MAX_DELAY);
+
+	if(HAL_SPI_Transmit(hspi, &w_add, 1, HAL_MAX_DELAY) != HAL_OK)
+		return false;
+	if(HAL_SPI_Transmit(hspi, &bias_off, 1, HAL_MAX_DELAY) != HAL_OK)
+		return false;
+
 	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_SET);
 
 	/* Conversation */
-	raw_adc_code = (uint16_t) (received_data[1] << 7) | ((received_data[2] & 0xFE) >> 1);
+	raw_adc_code = (uint16_t) ((received_data[1] << 7) | ((received_data[2] & 0xFE) >> 1));
 	rtd = (float) raw_adc_code / 32768 * 430;
 
-	*rtemp = rtd*2.5707-257.07;
-	return;
-
+	*railTemp = rtd*2.5707-257.07;
+	return true;
 }
 
-void movMeas(RTC_HandleTypeDef *hrtc)
+/* Get the actual time stamp */
+bool getTimeStamp(char timeStamp[])
 {
-	cBuff_State parse_flag;
-	uint16_t msg_data;
-	char msg_string[20];
-	char itoa_subbuf[5];
-	uint8_t first_iteration = 0;
-	char *json_s;
-	uint32_t ostr_len;
+	char rawStamp[20], conVal[3];	//Converted value (integer -> ASCII)
+	RTC_DateTypeDef date;
+	RTC_TimeTypeDef time;
 
-	/* Timestamp */
-	char tStamp[20];
-	getTimeStamp(hrtc, tStamp);
+	if(HAL_RTC_GetTime(rtcClock, &time, RTC_FORMAT_BIN) != HAL_OK)
+		return false;
+	if(HAL_RTC_GetDate(rtcClock, &date, RTC_FORMAT_BIN) != HAL_OK)
+		return false;
 
-	/* Copy JSON */
-	json_s = parseMovementMessage(mfb.duration, config_s.client_name, tStamp);
-	uint16_t json_slen = strstr(json_s, "xxxx")-json_s;
-	strncpy(outputString, json_s, json_slen);
+	strcpy(rawStamp, "20");		// 20
 
-	/* Defending ourselves */
-	ostr_len = json_slen;
+	itoa(date.Year, conVal, 10);
+	strcat(rawStamp, conVal);	// 20xx
 
-	while(mfb.MSG_SENT == 0)
+	strcat(rawStamp, ".");		// 20xx.
+
+	itoa(date.Month, conVal, 10);
+	if((date.Month / 10) == 0)
 	{
-		/* Buffer0 data */
-		pop_cBuff(&gBuffer0, &msg_data);
-		intoa_conv(msg_data, itoa_subbuf);
-		strcpy(msg_string, itoa_subbuf);
-		strcat(msg_string, "-");
-
-		/* Buffer1 data */
-		pop_cBuff(&gBuffer1, &msg_data);
-		intoa_conv(msg_data, itoa_subbuf);
-		strcat(msg_string, itoa_subbuf);
-		strcat(msg_string, "-");
-
-		/* Buffer2 data */
-		pop_cBuff(&gBuffer2, &msg_data);
-		intoa_conv(msg_data, itoa_subbuf);
-		strcat(msg_string, itoa_subbuf);
-		strcat(msg_string, "-");
-
-		/* Buffer3 data */
-		parse_flag = pop_cBuff(&gBuffer3, &msg_data);
-		intoa_conv(msg_data, itoa_subbuf);
-		strcat(msg_string, itoa_subbuf);
-
-		/* Send message if there is not any data */
-		if(parse_flag == cBuff_EMPTY)
-		{
-			sprintf(outputString + ostr_len, "\n");
-			ostr_len++;
-			for(uint8_t it1 = 0; it1< 24; it1++)
-			{
-				sprintf(outputString + ostr_len, " ");
-				ostr_len++;
-			}
-
-			/* sprintf terminate the string with '\0' char */
-			sprintf(outputString + ostr_len, strstr(json_s, "]"));
-
-			/* Send Message */
-			sendMovementMessage(outputString, mfb.warning_flag);
-
-			/* Reset Flags */
-			mfb.warning_flag = false;
-			mfb.MSG_FLAG = false;
-			mfb.MSG_SENT = 1;
-			mfb.CLEAR_FLAG = true;
-
-			/* Back to run */
-			HOLDFlag = false;
-		}
-
-		else
-		{
-			/* Add measurement to array */
-			if(first_iteration == 0)
-			{
-				sprintf(outputString + ostr_len, msg_string);
-				ostr_len = ostr_len + 19;
-				sprintf(outputString + ostr_len, "\"");
-				ostr_len++;
-				first_iteration = 1;
-			}
-			else
-			{
-				sprintf(outputString + ostr_len, ",\n");
-				ostr_len = ostr_len+2;
-				for(uint8_t it2 = 0; it2< 28; it2++)
-				{
-					sprintf(outputString + ostr_len, " ");
-					ostr_len++;
-				}
-				sprintf(outputString + ostr_len, "\"");
-				ostr_len++;
-				sprintf(outputString + ostr_len, msg_string);
-				ostr_len = ostr_len + 19;
-				sprintf(outputString + ostr_len, "\"");
-				ostr_len++;
-			}
-		}
+		conVal[1] = conVal[0];	// If month > 10 -> We have to use padding (e.g. 09)
+		conVal[0] = '0';
 	}
+	strcat(rawStamp, conVal);	// 20yy.mm
 
-	/* Reset SENT FLAG & Free JSON string */
-	json_free_serialized_string(json_s);
+	strcat(rawStamp, ".");		// 20yy.mm.
 
-	mfb.MSG_SENT = 0;
-	return;
+	itoa(date.Date, conVal, 10);
+	if((date.Date / 10) == 0)
+	{
+		conVal[1] = conVal[0];	// If month > 10 -> We have to use padding (e.g. 07)
+		conVal[0] = '0';
+	}
+	strcat(rawStamp, conVal);	// 20yy.mm.dd
+
+	strcat(rawStamp, ".");		// 20yy.mm.dd.
+
+	itoa(time.Hours, conVal, 10);
+	if((time.Hours / 10) == 0)
+	{
+		conVal[1] = conVal[0];	// Padding
+		conVal[0] = '0';
+	}
+	strcat(rawStamp, conVal);	// 20yy.mm.dd.hh
+
+	strcat(rawStamp, ":");		// 20yy.mm.dd.hh:
+
+	itoa(time.Minutes, conVal, 10);
+	if((time.Minutes / 10) == 0)
+	{
+		conVal[1] = conVal[0];	// Padding
+		conVal[0] = '0';
+	}
+	strcat(rawStamp, conVal);	// 20yy.mm.dd.hh:mm
+
+	strcat(rawStamp, ":");		// 20yy.mm.dd.hh:mm:
+
+	itoa(time.Seconds, conVal, 10);
+	if((time.Seconds / 10) == 0)
+	{
+		conVal[1] = conVal[0];
+		conVal[0] = '0';
+	}
+	strcat(rawStamp, conVal);
+	strcpy(timeStamp, rawStamp);
+
+	return true;
+}
+
+/*
+ * @brief This function send a Welcome message
+ */
+void sendWelcomeMessage(void)
+{
+	char timeStamp[20];
+	getTimeStamp(timeStamp);
+	sendWelcome(clientIdentifier, timeStamp);
 }

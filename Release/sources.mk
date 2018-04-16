@@ -29,7 +29,6 @@ CPP_DEPS :=
 SUBDIRS := \
 src/FatFs \
 src \
-src/edge_comm \
 system/src/cmsis \
 system/src/cortexm \
 system/src/diag \

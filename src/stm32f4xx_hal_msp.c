@@ -95,7 +95,7 @@ void HAL_ADC_MspInit(ADC_HandleTypeDef* hadc)
     PF7     ------> ADC3_IN5
     PF8     ------> ADC3_IN6
     PF9     ------> ADC3_IN7
-    PF10     ------> ADC3_IN8 
+    PF10    ------> ADC3_IN8
     */
     GPIO_InitStruct.Pin = GPIO_PIN_7|GPIO_PIN_8|GPIO_PIN_9|GPIO_PIN_10;
     GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
@@ -304,6 +304,7 @@ void HAL_SD_MspDeInit(SD_HandleTypeDef* hsd)
 
 void HAL_SPI_MspInit(SPI_HandleTypeDef *hspi)
 {
+
 	GPIO_InitTypeDef GPIO_InitStruct;
 	if(hspi->Instance == SPI1)
 	{
@@ -328,15 +329,18 @@ void HAL_SPI_MspInit(SPI_HandleTypeDef *hspi)
 		GPIO_InitStruct.Pull = GPIO_PULLUP;
 		GPIO_InitStruct.Alternate = GPIO_AF5_SPI1;
 		HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
 	}
 }
 
 void HAL_SPI_MspDeInit(SPI_HandleTypeDef* hspi)
 {
+
 	if(hspi->Instance == SPI1)
 	{
 		__HAL_RCC_SPI1_CLK_DISABLE();
 		HAL_GPIO_DeInit(GPIOA, GPIO_PIN_4 | GPIO_PIN_5 | GPIO_PIN_6 | GPIO_PIN_7);
+
 	}
 }
 
@@ -422,7 +426,7 @@ void HAL_UART_MspInit(UART_HandleTypeDef* huart)
     /* Peripheral clock enable */
     __HAL_RCC_USART2_CLK_ENABLE();
   
-    /**USART3 GPIO Configuration
+    /**USART2 GPIO Configuration
     PD3     ------> USART2_CTS
     PD4     ------> USART2_RTS
     PD5     ------> USART2_TX
@@ -438,11 +442,10 @@ void HAL_UART_MspInit(UART_HandleTypeDef* huart)
     /*
     GPIO_InitStruct.Pin = GPIO_PIN_3 | GPIO_PIN_4;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    GPIO_InitStruct.Pull = GPIO_PULLUP;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
     GPIO_InitStruct.Alternate = GPIO_AF7_USART2;
-    HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
-	*/
+    HAL_GPIO_Init(GPIOD, &GPIO_InitStruct); */ // CTS/RTS
 
     /* Peripheral interrupt init */
     HAL_NVIC_SetPriority(USART2_IRQn, 2, 0);
@@ -464,15 +467,10 @@ void HAL_UART_MspDeInit(UART_HandleTypeDef* huart)
   /* USER CODE END USART3_MspDeInit 0 */
     /* Peripheral clock disable */
     __HAL_RCC_USART2_CLK_DISABLE();
-  
-    /**USART3 GPIO Configuration    
-    PB10     ------> USART3_TX
-    PB11     ------> USART3_RX 
-    */
 
     /**USART2 GPIO Configuration
-    PD5     ------> USART2_TX - Port D 8 - Olimex
-    PD6     ------> USART2_RX - Port D 9 - Olimex
+    PD5      ------> USART2_TX (PD8)
+    PD6      ------> USART2_RX (PD9)
      */
     HAL_GPIO_DeInit(GPIOD, GPIO_PIN_5|GPIO_PIN_6);
 

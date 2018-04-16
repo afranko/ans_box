@@ -13,7 +13,6 @@ RM := rm -rf
 -include system/src/diag/subdir.mk
 -include system/src/cortexm/subdir.mk
 -include system/src/cmsis/subdir.mk
--include src/edge_comm/subdir.mk
 -include src/FatFs/subdir.mk
 -include src/subdir.mk
 -include subdir.mk
@@ -50,38 +49,38 @@ endif
 
 # Add inputs and outputs from these tool invocations to the build variables 
 SECONDARY_FLASH += \
-ans_box.hex \
+AnsBox.hex \
 
 SECONDARY_SIZE += \
-ans_box.siz \
+AnsBox.siz \
 
 
 # All Target
-all: ans_box.elf secondary-outputs
+all: AnsBox.elf secondary-outputs
 
 # Tool invocations
-ans_box.elf: $(OBJS) $(USER_OBJS)
+AnsBox.elf: $(OBJS) $(USER_OBJS)
 	@echo 'Building target: $@'
 	@echo 'Invoking: Cross ARM C++ Linker'
-	arm-none-eabi-g++ -mcpu=cortex-m4 -mthumb -mfloat-abi=soft -Os -fmessage-length=0 -fsigned-char -ffunction-sections -fdata-sections -Wall -Wextra  -g -T mem.ld -T libs.ld -T sections.ld -nostartfiles -Xlinker --gc-sections -L"../ldscripts" -Wl,-Map,"ans_box.map" --specs=nano.specs -u _printf_float -o "ans_box.elf" $(OBJS) $(USER_OBJS) $(LIBS)
+	arm-none-eabi-g++ -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16 -O3 -fmessage-length=0 -fsigned-char -ffunction-sections -fdata-sections -fsingle-precision-constant -Wall -Wextra  -g -T mem.ld -T libs.ld -T sections.ld -nostartfiles -Xlinker --gc-sections -L"../ldscripts" -Wl,-Map,"AnsBox.map" --specs=nano.specs -u _printf_float -o "AnsBox.elf" $(OBJS) $(USER_OBJS) $(LIBS)
 	@echo 'Finished building target: $@'
 	@echo ' '
 
-ans_box.hex: ans_box.elf
+AnsBox.hex: AnsBox.elf
 	@echo 'Invoking: Cross ARM GNU Create Flash Image'
-	arm-none-eabi-objcopy -O ihex "ans_box.elf"  "ans_box.hex"
+	arm-none-eabi-objcopy -O ihex "AnsBox.elf"  "AnsBox.hex"
 	@echo 'Finished building: $@'
 	@echo ' '
 
-ans_box.siz: ans_box.elf
+AnsBox.siz: AnsBox.elf
 	@echo 'Invoking: Cross ARM GNU Print Size'
-	arm-none-eabi-size --format=berkeley "ans_box.elf"
+	arm-none-eabi-size --format=berkeley "AnsBox.elf"
 	@echo 'Finished building: $@'
 	@echo ' '
 
 # Other Targets
 clean:
-	-$(RM) $(CC_DEPS)$(C++_DEPS)$(OBJS)$(C_UPPER_DEPS)$(CXX_DEPS)$(SECONDARY_FLASH)$(SECONDARY_SIZE)$(ASM_DEPS)$(S_UPPER_DEPS)$(C_DEPS)$(CPP_DEPS) ans_box.elf
+	-$(RM) $(CC_DEPS)$(C++_DEPS)$(OBJS)$(C_UPPER_DEPS)$(CXX_DEPS)$(SECONDARY_FLASH)$(SECONDARY_SIZE)$(ASM_DEPS)$(S_UPPER_DEPS)$(C_DEPS)$(CPP_DEPS) AnsBox.elf
 	-@echo ' '
 
 secondary-outputs: $(SECONDARY_FLASH) $(SECONDARY_SIZE)

@@ -5,9 +5,8 @@
 #ifndef STATEMACHINE_H_
 #define STATEMACHINE_H_
 
+#include "init.h"
 #include "measurement.h"
-
-extern cBuff cont_0, cont_1, cont_2, cont_3;
 
 typedef enum
 {
@@ -19,15 +18,12 @@ typedef enum
 	S_ERROR		= 4
 }machine_state;
 
-extern meas_flag_block mfb;
-extern Settings_HandleTypeDef config_s;
+extern measurement_flag_block mfb;
+extern Settings_HandleTypeDef *hconfig;
+extern cBuff *measBuffers[4];
 
-machine_state p_error(void);
-machine_state p_low(void);
-machine_state p_high(void);
-machine_state p_meas_up(void);
-machine_state p_meas_down(void);
 void p_start(void);
 void statemachine_process(void);
+uint16_t getLastPosition(void);
 
 #endif /* STATEMACHINE_H_ */
