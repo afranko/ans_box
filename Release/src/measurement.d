@@ -1,5 +1,5 @@
 src/measurement.o: ../src/measurement.c ../include/measurement.h \
- ../include/circ_buff.h ../include/init.h \
+ ../include/message.h ../include/init.h \
  ../system/include/stm32f4-hal/stm32f4xx_hal.h \
  ../include/stm32f4xx_hal_conf.h \
  ../system/include/stm32f4-hal/stm32f4xx_hal_rcc.h \
@@ -40,12 +40,11 @@ src/measurement.o: ../src/measurement.c ../include/measurement.h \
  ../include/ffconf.h ../include/bsp_driver_sd.h \
  ../include/../src/FatFs/ff_gen_drv.h ../include/../src/FatFs/diskio.h \
  ../include/../src/FatFs/ff.h ../include/../src/FatFs/sd_diskio.h \
- ../include/edge_comm/edge_comm.h ../include/edge_comm/parson.h \
- ../include/edge_comm/GSM_MQTT.h ../include/init.h
+ ../include/parson.h ../include/circbuff.h ../include/comm.h
 
 ../include/measurement.h:
 
-../include/circ_buff.h:
+../include/message.h:
 
 ../include/init.h:
 
@@ -141,10 +140,8 @@ src/measurement.o: ../src/measurement.c ../include/measurement.h \
 
 ../include/../src/FatFs/sd_diskio.h:
 
-../include/edge_comm/edge_comm.h:
+../include/parson.h:
 
-../include/edge_comm/parson.h:
+../include/circbuff.h:
 
-../include/edge_comm/GSM_MQTT.h:
-
-../include/init.h:
+../include/comm.h:

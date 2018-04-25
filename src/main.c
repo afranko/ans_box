@@ -1,136 +1,191 @@
-/* Includes ------------------------------------------------------------------ */
+/*
+ * AnsBox - MANTIS sensor acquisition box for railroad switches
+ *
+ */
+
 #include "statemachine.h"
+#include "storage.h"
 
-ADC_HandleTypeDef hadc3;
+ADC_HandleTypeDef 	hadc3;
+I2C_HandleTypeDef 	hi2c2;
+SPI_HandleTypeDef 	hspi1;
+RTC_HandleTypeDef 	hrtc;
+TIM_HandleTypeDef 	htim2;
+TIM_HandleTypeDef	htim4;
+UART_HandleTypeDef	huart2;
 
-I2C_HandleTypeDef hi2c2;
+/* Buffers and buffer holder arrays (to avoid copying them in functions) */
+cBuff *measBuffers[4], *sendBuffers[4];
 
-SPI_HandleTypeDef hspi1;
+/* In this application buffer pointer underflow isn't a problem, but at
+ * different buffer sizes it has to be solved with an underflow function if(tail<0)...
+ * Offset timeframe has to be > 9 ms!
+ */
 
-RTC_HandleTypeDef hrtc;
+/* Input */
+uint8_t receivedByte;
+char topicName[50];
+char inMessage[100];
+char messageType;
 
-TIM_HandleTypeDef htim2;
-TIM_HandleTypeDef htim4;
+/* Settings - CONFIG & RTC */
+Settings_HandleTypeDef *hconfig;
+bool isRTCSet = true;
 
-UART_HandleTypeDef huart2;
-
-Settings_HandleTypeDef config_s;
-
-/*----------------------------------*/
-/* 		   		Table	 			*/
-/*----------------------------------*/
-/*	 cont_0		gBuffer0	PF7 	*/
-/*	 cont_1		gBuffer1	PF8		*/
-/*	 cont_2		gBuffer2	PF9		*/
-/*	 cont_3		gBuffer3	PF10	*/
-/*----------------------------------*/
-
-cBuff cont_0, cont_1, cont_2, cont_3, gBuffer0, gBuffer1, gBuffer2, gBuffer3;
-
-uint16_t env_counter = 0;
-bool timeFlag = false;
+/* Environment */
+char envString[1200];
+uint32_t env_counter;
 bool envMeasFlag = false;
-bool HOLDFlag = false;
 
-extern serialBuff uartBuffer;
-extern GSM_MQTT MQTT;
-extern uint8_t bcounter;
-extern meas_flag_block mfb;
-extern miniBuff serial_time_buff;
-extern uint8_t serial_time_value;
-extern bool commandFlag;
+/* Movement */
+char movString[66000];
+bool msgFlag = false;
+bool warningFlag = false;
+
+/* Warning */
+char timeStamp[20];
+char warningString[500];
+
+/* Last Position */
+char *lpTs = NULL;
+uint16_t actData = 0;
+float actResponse = 0.0;
+
+/* Flags */
+bool lastMessage = false;
+bool lastPositionTrigger = false;
+bool welcomeFlag = false;
+
+/* Storage pointer */
+char *storedStrings[] = {envString, movString, warningString};
 
 int main(void)
 {
-
-	/* Initialization */
 	init_settings();
-	init_meas_flag_block(&mfb);
-	timeFlag = true;
+	initPT(&hspi1);
+	initMeasurementParams(hconfig->client_name, &hrtc);
+	initMessages();
 
-	/* Init circular buffers */
-	init_cBuff(&cont_0);
-	init_cBuff(&cont_1);
-	init_cBuff(&cont_2);
-	init_cBuff(&cont_3);
-	init_cBuff(&gBuffer0);
-	init_cBuff(&gBuffer1);
-	init_cBuff(&gBuffer2);
-	init_cBuff(&gBuffer3);
+	/* Init Buffers */
+	for(uint8_t bufferIndicator = 0; bufferIndicator < 4; bufferIndicator++)
+	{
+		measBuffers[bufferIndicator] = init_cBuff(2048);
+		sendBuffers[bufferIndicator] = init_cBuff(2048);
+	}
 
-	/* Set external sensor*/
-	setMAX(&hspi1);
+	HAL_UART_Receive_IT(&huart2, &receivedByte, 1); // Start UART
+	init_comm(hconfig);
 
- 	CommInit(&huart2, 60);
+	if(!isRTCSet)
+		if(!setRTC())
+			restart_system();	// Restart if we don't have the clock
 
- 	HAL_ADC_Start_IT(&hadc3);
-
- 	while(MQTT.MQTT_Flag != true)
- 	{
- 		MQTTProcessing();
- 	}
-
+	/* Connection */
+	while(!isConnected()) comm_handler();
 
 	/* Waiting for the first conversation */
-	while(bcounter == 0);
+	HAL_ADC_Start_IT(&hadc3);
+	while(measBuffers[0]->head < (hconfig->meas_offset / 10)) {};
 
-	/* Go to "Start" state */
+	//syncStorage();
+	initFlags();
+
+	/* Start FSR */
 	p_start();
 
-	/* Main Loop */
-	while(1)
+	while(true)
 	{
-		if(commandFlag == true)
+		comm_handler();
+		if(welcomeFlag)
 		{
-			if((mfb.duration == 0) && (mfb.S_MEAS_FLAG == false))
-			{
-				HOLDFlag = true;
-				mfb.S_MEAS_FLAG = true;
-				mfb.E_MEAS_FLAG = true;
-			}
-			commandFlag = false;
+			sendWelcomeMessage();
+			getTimeStamp(timeStamp);
+			actData = getLastPosition();
+			if(actData < hconfig->threshold_min)
+				actResponse = 0.0;
+			else if(actData > hconfig->threshold_max)
+				actResponse = 1.0;
+			else
+				actResponse = 0.5;
+			sendLastPosition(actResponse, hconfig->client_name, timeStamp);
+			welcomeFlag = false;
+		}
+		if(isFreshMessage())
+		{
+			recMessage(topicName, inMessage);
+			lpTs = strstr(inMessage, "\"timestamp\": \"") + 14U;
+			lpTs[19] = '\0';
+			lastPositionTrigger = true;
 		}
 
-		/* Aggregate Measurement Data */
-		meas_datamove();
-
-		/* StateMachine */
-		if(HOLDFlag != true)
+		if(lastPositionTrigger)
 		{
-			statemachine_process();
+			actData = getLastPosition();
+			if(actData < hconfig->threshold_min)
+				actResponse = 0.0;
+			else if(actData > hconfig->threshold_max)
+				actResponse = 1.0;
+			else
+				actResponse = 0.5;
+			if(lpTs != NULL)
+				sendLastPosition(actResponse, hconfig->client_name, lpTs);
+			lastPositionTrigger = false;
 		}
 
-		/* MQTT Communication */
-		MQTTProcessing();
+		statemachine_process();
 
-		/* Environment Measurement */
-		if(envMeasFlag == true)
+		doMovMeas(&msgFlag, &warningFlag);
+
+		if(msgFlag)
 		{
-			envMeas(&hrtc, &hi2c2, &hspi1);
+			if(movMeasToMessage(movString, timeStamp))
+				sendMessage(storedStrings, 'M');
+			/*	if(!sendMessage(storedStrings, 'M'))
+					writeToStorage(movString, 'M'); */
+			if(warningFlag)
+				if(stampWarning(warningString, timeStamp, hconfig->client_name))
+					sendMessage(storedStrings, 'W');
+				/*	if(!sendMessage(storedStrings, 'W'))
+						writeToStorage(warningString, 'W'); */
+			actData = getLastPosition();
+			if(actData < hconfig->threshold_min)
+				actResponse = 0.0;
+			else if(actData > hconfig->threshold_max)
+				actResponse = 1.0;
+			else
+				actResponse = 0.5;
+			sendLastPosition(actResponse, hconfig->client_name, timeStamp);
+			msgFlag = false;
+		}
+
+		if(envMeasFlag)
+		{
+			doEnvMeas(&hi2c2, &hspi1, envString);
+			sendMessage(storedStrings, 'E');
+		/*	if(!sendMessage(storedStrings, 'E'))
+				writeToStorage(envString, 'E');	*/
 			envMeasFlag = false;
 		}
-
-		/* Send Movement message */
-		if(mfb.MSG_FLAG == true)
+		/*
+		if(isConnected())
 		{
-			movMeas(&hrtc);
+			if(checkStorage() > 0)
+			{
+				if(readFromStorage(storedStrings, &messageType))
+					sendMessage(storedStrings, messageType);
+			}
 		}
+		*/
 	}
 }
+
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
 	if(huart->Instance == USART2)
 	{
-		if(timeFlag == true)
-		{
-			serialGet();
-		}
-		else
-		{
-			push_miniBuff(&serial_time_buff, serial_time_value);
-			HAL_UART_Receive_IT(&huart2, &serial_time_value, 1);
-		}
+		getSerial(receivedByte);
+		HAL_UART_Receive_IT(&huart2, &receivedByte, 1);
 	}
 }
 
@@ -138,7 +193,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
 	if(htim->Instance == TIM4)
 	{
-		if(env_counter == config_s.env_meas_freq)
+		if(env_counter == hconfig->env_meas_freq)
 		{
 			envMeasFlag = true;
 			env_counter = 0;
@@ -147,28 +202,11 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 	}
 }
 
-/*
-void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
-{
-	if(huart->Instance == MQTT.gsm_uart->Instance)
-	{
-		if(txString.buffer != NULL)
-		{
-			uint8_t txr_data = tx_read(&txString);
-			HAL_UART_Transmit_IT(huart, &txr_data, 1);
-			tx_go(&txString);
-		}
-	}
-}
-*/
-
 void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
 {
 	if(huart->ErrorCode)
 	{
-		if(timeFlag)
-			HAL_UART_Receive_IT(huart, &uartBuffer.temp_val, sizeof(char));
-		else
-			HAL_UART_Receive_IT(&huart2, &serial_time_value, 1);
+		HAL_UART_Receive_IT(&huart2, &receivedByte, 1);
 	}
 }
+
