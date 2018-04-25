@@ -158,7 +158,7 @@ final class Utility {
       System.out.println(timeStamp + " could not be parsed into a LocalDateTime, please fix formatting.");
     }
 
-    return LocalDateTime.now().toString();
+    return LocalDateTime.now().format(to).toString();
   }
 
 }

@@ -195,7 +195,7 @@ public final class MyMqttClient implements MqttCallback {
     }
 
     String timestamp = Utility.fixDateFormat(warning.getTimestamp());
-    EventCharData charData = new EventCharData(warning.getBoxId(), 0, "0000000000000000", 1, 12, "2018-03-12 13:31:42.000", "0000000000000000", 5, 0,
+    EventCharData charData = new EventCharData(warning.getBoxId(), 0, "0000000000000000", 1, 12, timestamp, "0000000000000000", 5, 0,
                                                "0000000000000000", 0, 0, warning.getMessage(), timestamp);
     Utility.sendRequest(WARNING_URL, "POST", charData);
   }
