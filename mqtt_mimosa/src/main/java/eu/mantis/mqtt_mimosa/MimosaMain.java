@@ -53,6 +53,7 @@ class MimosaMain {
   private static HttpServer startServer() throws IOException {
     final ResourceConfig config = new ResourceConfig();
     config.registerClasses(BoxResource.class);
+    config.packages("eu.mantis.mqtt_mimosa");
 
     URI uri = UriBuilder.fromUri(BASE_URI).build();
     final HttpServer server = GrizzlyHttpServerFactory.createHttpServer(uri, config);
