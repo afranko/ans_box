@@ -52,11 +52,10 @@ class MimosaMain {
 
   private static HttpServer startServer() throws IOException {
     final ResourceConfig config = new ResourceConfig();
-    config.registerClasses(BoxResource.class);
-    config.packages("eu.mantis.mqtt_mimosa");
+    config.registerClasses(BoxResource.class, IPFilter.class, AppExceptionMapper.class);
 
     URI uri = UriBuilder.fromUri(BASE_URI).build();
-    final HttpServer server = GrizzlyHttpServerFactory.createHttpServer(uri, config);
+    final HttpServer server = GrizzlyHttpServerFactory.createHttpServer(uri, config, false);
     server.getServerConfiguration().setAllowPayloadForUndefinedHttpMethods(true);
     server.start();
     System.out.println("Started insecure server at: " + BASE_URI);

@@ -4,8 +4,11 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import eu.mantis.mqtt_mimosa.mimosa_messages.ErrorMessage;
 import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
+import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.ByteBuffer;
@@ -159,6 +162,26 @@ final class Utility {
     }
 
     return LocalDateTime.now().format(to).toString();
+  }
+
+  public static String getRequestPayload(InputStream is) {
+    StringBuilder sb = new StringBuilder();
+    String line;
+    try (BufferedReader br = new BufferedReader(new InputStreamReader(is, "UTF-8"))) {
+      while ((line = br.readLine()) != null) {
+        sb.append(line);
+      }
+    } catch (UnsupportedEncodingException e) {
+      throw new AssertionError("getRequestPayload InputStreamReader has unsupported character set! Code needs to be changed!", e);
+    } catch (IOException e) {
+      throw new RuntimeException("IOException occured while reading an incoming request payload", e);
+    }
+
+    if (!sb.toString().isEmpty()) {
+      return sb.toString();
+    } else {
+      return "";
+    }
   }
 
 }

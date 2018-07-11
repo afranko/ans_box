@@ -1,6 +1,8 @@
 package eu.mantis.mqtt_mimosa;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.container.ContainerRequestContext;
 import javax.ws.rs.container.ContainerRequestFilter;
@@ -15,13 +17,18 @@ public class IPFilter implements ContainerRequestFilter {
 
   @Override
   public synchronized void filter(ContainerRequestContext request) throws IOException {
-    /*
-     * Returns the Internet Protocol (IP) address of the client or
-     * last proxy that sent the request. For HTTP servlets, same as
-     * the value of the CGI variable REMOTE_ADDR.
-     */
-    String ip = sr.getRemoteAddr();
-    System.out.println("Caller's IP address: " + ip);
+    System.out.println("New " + request.getMethod() + " request at: " + request.getUriInfo().getRequestUri().toString());
+    String prettyJson = Utility.getRequestPayload(request.getEntityStream());
+    System.out.println(prettyJson);
+
+    InputStream in = new ByteArrayInputStream(prettyJson.getBytes("UTF-8"));
+    request.setEntityStream(in);
+
+    //always null atm :/
+    if (sr != null) {
+      System.out.println("Caller's address: " + sr.getRemoteAddr());
+    }
+
   }
 
 }
