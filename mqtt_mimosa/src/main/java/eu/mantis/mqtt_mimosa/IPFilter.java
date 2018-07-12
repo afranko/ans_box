@@ -14,7 +14,7 @@ public class IPFilter implements ContainerRequestFilter {
   @Override
   public synchronized void filter(ContainerRequestContext request) throws IOException {
     System.out.println(
-        "New " + request.getMethod() + " request at: " + request.getUriInfo().getRequestUri().toString() + " (and the time is" + LocalDateTime.now()
+        "New " + request.getMethod() + " request at: " + request.getUriInfo().getRequestUri().toString() + " (and the time is " + LocalDateTime.now()
             + ")");
     String prettyJson = Utility.getRequestPayload(request.getEntityStream());
     System.out.println(prettyJson);
