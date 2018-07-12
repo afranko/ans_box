@@ -202,7 +202,7 @@ public final class MyMqttClient implements MqttCallback {
 
   int sendTimestampToBroker(String topic) {
     //Return "Conflict" if a request to the modem is already in progress
-    if (WAITING_FOR_LAST_POSITION) {
+    if (WAITING_FOR_LAST_POSITION && LAST_POSITION_TIMESTAMP != null) {
       return 409;
     }
     if (topic == null) {
