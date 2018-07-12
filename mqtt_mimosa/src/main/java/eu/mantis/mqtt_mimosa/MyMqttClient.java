@@ -201,6 +201,10 @@ public final class MyMqttClient implements MqttCallback {
   }
 
   int sendTimestampToBroker(String topic) {
+    //Return "Conflict" if a request to the modem is already in progress
+    if (WAITING_FOR_LAST_POSITION) {
+      return 409;
+    }
     if (topic == null) {
       topic = "/ANS_MEAS_BOX_001";
     }
@@ -217,20 +221,20 @@ public final class MyMqttClient implements MqttCallback {
       return 500;
     }
 
-    int seconds = 0;
+    int tries = 0;
     WAITING_FOR_LAST_POSITION = true;
     while (WAITING_FOR_LAST_POSITION) {
-      //50 seconds passed...
-      if (seconds > 9) {
+      //50 seconds passed if true...
+      if (tries > 9) {
         break;
       }
       try {
-        Thread.sleep(1000);
+        Thread.sleep(5000);
       } catch (InterruptedException e) {
         e.printStackTrace();
         System.out.println("Waiting for last position message failed with Thread:InterruptedException");
       }
-      seconds++;
+      tries++;
     }
     if (WAITING_FOR_LAST_POSITION) {
       return 500;

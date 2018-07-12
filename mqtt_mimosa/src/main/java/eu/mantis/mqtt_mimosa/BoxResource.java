@@ -33,7 +33,7 @@ public class BoxResource {
     int statusCode = 500;
     for (int i = 0; i < 5; i++) {
       statusCode = MimosaMain.client.sendTimestampToBroker(boxName);
-      if (statusCode == 200) {
+      if (statusCode == 200 || statusCode == 409) {
         break;
       } else {
         System.out.println("RETRY");
